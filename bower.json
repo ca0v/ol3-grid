@@ -1,0 +1,43 @@
+{
+  "name": "ol3-grid",
+  "description": "Input control for OpenLayers 3",
+  "homepage": "https://github.com/ca0v/ol3-grid",
+  "main": [
+    "ol3-index.ts",
+    "built/index.js"
+  ],
+  "devDependencies": {
+    "ol3-symbolizer": "git://github.com/ca0v/ol3-symbolizer.git#v3.20.1",
+    "ol3-popup": "git://github.com/ca0v/ol3-popup.git#v3.20.1"
+  },
+  "dependencies": {
+    "openlayers": "https://github.com/openlayers/ol3/releases/download/v3.20.1/v3.20.1-dist.zip",
+    "requirejs": "^2.3.2"
+  },
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "openlayers",
+    "grid",
+    "control"
+  ],
+  "authors": [
+    "Corey Alix <coreyalix@outlook.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "bower_components",
+    "typings",
+    "ol3-grid/examples/**",
+    "*.html",
+    "*.md",
+    "*.yml"
+  ],
+  "private": true,
+  "typescript": {
+    "definition": "built/index.d.ts"
+  },
+  "version": "3.20.1"
+}
