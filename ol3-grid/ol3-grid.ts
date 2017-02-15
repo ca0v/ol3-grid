@@ -1,5 +1,5 @@
 import ol = require("openlayers");
-import { mixin, cssin, debounce, html as toHtml } from "ol3-fun/ol3-fun/common";
+import { html, mixin, cssin, debounce } from "ol3-fun/ol3-fun/common";
 import Snapshot = require("ol3-fun/ol3-fun/snapshot");
 
 const css = `
@@ -67,7 +67,6 @@ const css = `
         right: 4.5em;
     }
     .ol-grid .ol-grid-container {
-        min-width: 8em;
         max-height: 16em;
         overflow-y: auto;
     }
@@ -90,7 +89,7 @@ const css = `
 const grid_html = `
 <div class='ol-grid-container'>
     <table class='ol-grid-table'>
-        <tbody></tbody>
+        <tbody><tr><td/></tr></tbody>
     </table>
 </div>
 `;
@@ -117,6 +116,7 @@ export interface IOptions {
     openedText?: string;
     element?: HTMLElement;
     target?: HTMLElement;
+    layers?: ol.layer.Vector[];
     // what to show on the tooltip
     placeholderText?: string;
     onChange?: (args: { value: string }) => void;
@@ -199,7 +199,7 @@ export class Grid extends ol.control.Control {
             button.style.display = "none";
         }
 
-        let grid = toHtml(grid_html.trim());
+        let grid = html(grid_html.trim());
         this.grid = <HTMLTableElement>grid.getElementsByClassName("ol-grid-table")[0];
 
         options.element.appendChild(grid);
@@ -239,24 +239,30 @@ export class Grid extends ol.control.Control {
         }
 
         features.forEach(feature => {
-            let tr = $(`<tr tabindex="0" class="feature-row"></tr>`);
+            let tr = document.createElement("tr");
+            tr.tabIndex = 0;
+            tr.className = "feature-row";
 
             if (this.options.showIcon) {
-                let td = $(`<td><canvas class="icon"></canvas></td>`);
-                let canvas = <HTMLCanvasElement>$(".icon", td)[0];
+                let td = document.createElement("td");
+                let canvas = document.createElement("canvas");
+                td.appendChild(canvas);
+                canvas.className = "icon";
                 canvas.width = 160;
                 canvas.height = 64;
-                td.appendTo(tr);
+                tr.appendChild(td);
                 Snapshot.render(canvas, feature);
             }
 
             if (this.options.labelAttributeName) {
-                let td = $(`<td><label class="label">${feature.get(this.options.labelAttributeName)}</label></td>`);
-                td.appendTo(tr);
+                let td = document.createElement("td");
+                let label = html(`<label class="label">${feature.get(this.options.labelAttributeName)}</label>`);
+                td.appendChild(label);
+                tr.appendChild(td);
             }
 
             ["click", "keypress"].forEach(k =>
-                tr.on(k, () => {
+                tr.addEventListener(k, () => {
                     if (this.options.autoCollapse) {
                         this.collapse();
                     }
@@ -267,7 +273,7 @@ export class Grid extends ol.control.Control {
                     });
                 }));
 
-            tr.appendTo(tbody);
+            tbody.appendChild(tr);
 
         });
     }
@@ -284,19 +290,15 @@ export class Grid extends ol.control.Control {
     setMap(map: ol.Map) {
         super.setMap(map);
 
-        let vectorLayers = map.getLayers()
-            .getArray()
-            .filter(l => l instanceof ol.layer.Vector)
-            .map(l => <ol.layer.Vector>l);
-
         if (this.options.currentExtent) {
             map.getView().on(["change:center", "change:resolution"], debounce(() => this.redraw()));
         }
 
-        vectorLayers.forEach(l => l.getSource().on("addfeature", (args: { feature: ol.Feature }) => {
-            this.add(args.feature);
-        }));
-
+        if (this.options.layers) {
+            this.options.layers.forEach(l => l.getSource().on("addfeature", (args: { feature: ol.Feature }) => {
+                this.add(args.feature);
+            }));
+        }
     }
 
     collapse() {
