@@ -1,71 +1,6 @@
-import $ = require("jquery");
 import ol = require("openlayers");
-
-function mixin<A extends any, B extends any>(a: A, b: B) {
-    Object.keys(b).forEach(k => a[k] = b[k]);
-    return <A & B>a;
-}
-
-function cssin(name: string, css: string) {
-    let id = `style-${name}`;
-    let styleTag = <HTMLStyleElement>document.getElementById(id);
-    if (!styleTag) {
-        styleTag = document.createElement("style");
-        styleTag.id = id;
-        styleTag.innerText = css;
-        document.head.appendChild(styleTag);
-    }
-
-    let dataset = styleTag.dataset;
-    dataset["count"] = parseInt(dataset["count"] || "0") + 1 + "";
-
-    return () => {
-        dataset["count"] = parseInt(dataset["count"] || "0") - 1 + "";
-        if (dataset["count"] === "0") {
-            styleTag.remove();
-        }
-    };
-}
-
-function debounce(func: () => void, wait = 50) {
-    let h: number;
-    return () => {
-        clearTimeout(h);
-        h = setTimeout(() => func(), wait);
-    };
-}
-
-class Snapshot {
-
-    static render(canvas: HTMLCanvasElement, feature: ol.Feature) {
-        feature = feature.clone();
-        let geom = feature.getGeometry();
-        let extent = geom.getExtent();
-
-        let isPoint = extent[0] === extent[2];
-        let [dx, dy] = ol.extent.getCenter(extent);
-        let scale = isPoint ? 1 : Math.min(canvas.width / ol.extent.getWidth(extent), canvas.height / ol.extent.getHeight(extent));
-
-        geom.translate(-dx, -dy);
-        geom.scale(scale, -scale);
-        geom.translate(canvas.width / 2, canvas.height / 2);
-
-        let vtx = ol.render.toContext(canvas.getContext("2d"));
-        let styles = <ol.style.Style[]><any>feature.getStyleFunction()(0);
-        if (!Array.isArray(styles)) styles = <any>[styles];
-        styles.forEach(style => vtx.drawFeature(feature, style));
-    }
-
-    /**
-     * convert features into data:image/png;base64;  
-     */
-    static snapshot(feature: ol.Feature) {
-        let canvas = document.createElement("canvas");
-        let geom = feature.getGeometry();
-        this.render(canvas, feature);
-        return canvas.toDataURL();
-    }
-}
+import { mixin, cssin, debounce, html as toHtml } from "ol3-fun/ol3-fun/common";
+import Snapshot = require("ol3-fun/ol3-fun/snapshot");
 
 const css = `
     .ol-grid {
@@ -264,10 +199,10 @@ export class Grid extends ol.control.Control {
             button.style.display = "none";
         }
 
-        let grid = $(grid_html.trim());
-        this.grid = <HTMLTableElement>$(".ol-grid-table", grid)[0];
+        let grid = toHtml(grid_html.trim());
+        this.grid = <HTMLTableElement>grid.getElementsByClassName("ol-grid-table")[0];
 
-        grid.appendTo(options.element);
+        options.element.appendChild(grid);
 
         if (this.options.autoCollapse) {
             button.addEventListener("mouseover", () => {

@@ -39,5 +39,5 @@
   "typescript": {
     "definition": "built/index.d.ts"
   },
-  "version": "3.20.1"
+  "version": "4.0.1"
 }
