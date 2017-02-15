@@ -3,12 +3,59 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], function (require, exports, $, ol) {
+define("bower_components/ol3-fun/ol3-fun/common", ["require", "exports"], function (require, exports) {
     "use strict";
+    function parse(v, type) {
+        if (typeof type === "string")
+            return v;
+        if (typeof type === "number")
+            return parseFloat(v);
+        if (typeof type === "boolean")
+            return (v === "1" || v === "true");
+        if (Array.isArray(type)) {
+            return (v.split(",").map(function (v) { return parse(v, type[0]); }));
+        }
+        throw "unknown type: " + type;
+    }
+    exports.parse = parse;
+    function getQueryParameters(options, url) {
+        if (url === void 0) { url = window.location.href; }
+        var opts = options;
+        Object.keys(opts).forEach(function (k) {
+            doif(getParameterByName(k, url), function (v) {
+                var value = parse(v, opts[k]);
+                if (value !== undefined)
+                    opts[k] = value;
+            });
+        });
+    }
+    exports.getQueryParameters = getQueryParameters;
+    function getParameterByName(name, url) {
+        if (url === void 0) { url = window.location.href; }
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"), results = regex.exec(url);
+        if (!results)
+            return null;
+        if (!results[2])
+            return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+    exports.getParameterByName = getParameterByName;
+    function doif(v, cb) {
+        if (v !== undefined && v !== null)
+            cb(v);
+    }
+    exports.doif = doif;
     function mixin(a, b) {
         Object.keys(b).forEach(function (k) { return a[k] = b[k]; });
         return a;
     }
+    exports.mixin = mixin;
+    function defaults(a, b) {
+        Object.keys(b).filter(function (k) { return a[k] == undefined; }).forEach(function (k) { return a[k] = b[k]; });
+        return a;
+    }
+    exports.defaults = defaults;
     function cssin(name, css) {
         var id = "style-" + name;
         var styleTag = document.getElementById(id);
@@ -27,6 +74,7 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
             }
         };
     }
+    exports.cssin = cssin;
     function debounce(func, wait) {
         if (wait === void 0) { wait = 50; }
         var h;
@@ -35,6 +83,24 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
             h = setTimeout(function () { return func(); }, wait);
         };
     }
+    exports.debounce = debounce;
+    /**
+     * poor $(html) substitute due to being
+     * unable to create <td>, <tr> elements
+     */
+    function html(html) {
+        var d = document;
+        var a = d.createElement("div");
+        var b = d.createDocumentFragment();
+        a.innerHTML = html;
+        while (a.firstChild)
+            b.appendChild(a.firstChild);
+        return b.firstElementChild;
+    }
+    exports.html = html;
+});
+define("bower_components/ol3-fun/ol3-fun/snapshot", ["require", "exports", "openlayers"], function (require, exports, ol) {
+    "use strict";
     var Snapshot = (function () {
         function Snapshot() {
         }
@@ -65,8 +131,12 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
         };
         return Snapshot;
     }());
-    var css = "\n    .ol-grid {\n        position:absolute;\n    }\n    .ol-grid.top {\n        top: 0.5em;\n    }\n    .ol-grid.top-1 {\n        top: 1.5em;\n    }\n    .ol-grid.top-2 {\n        top: 2.5em;\n    }\n    .ol-grid.top-3 {\n        top: 3.5em;\n    }\n    .ol-grid.top-4 {\n        top: 4.5em;\n    }\n    .ol-grid.left {\n        left: 0.5em;\n    }\n    .ol-grid.left-1 {\n        left: 1.5em;\n    }\n    .ol-grid.left-2 {\n        left: 2.5em;\n    }\n    .ol-grid.left-3 {\n        left: 3.5em;\n    }\n    .ol-grid.left-4 {\n        left: 4.5em;\n    }\n    .ol-grid.bottom {\n        bottom: 0.5em;\n    }\n    .ol-grid.bottom-1 {\n        bottom: 1.5em;\n    }\n    .ol-grid.bottom-2 {\n        bottom: 2.5em;\n    }\n    .ol-grid.bottom-3 {\n        bottom: 3.5em;\n    }\n    .ol-grid.bottom-4 {\n        bottom: 4.5em;\n    }\n    .ol-grid.right {\n        right: 0.5em;\n    }\n    .ol-grid.right-1 {\n        right: 1.5em;\n    }\n    .ol-grid.right-2 {\n        right: 2.5em;\n    }\n    .ol-grid.right-3 {\n        right: 3.5em;\n    }\n    .ol-grid.right-4 {\n        right: 4.5em;\n    }\n    .ol-grid .ol-grid-container {\n        min-width: 8em;\n        max-height: 16em;\n        overflow-y: auto;\n    }\n    .ol-grid .ol-grid-container.ol-hidden {\n        display: none;\n    }\n    .ol-grid .feature-row {\n        cursor: pointer;\n    }\n    .ol-grid .feature-row:hover {\n        background: black;\n        color: white;\n    }\n    .ol-grid .feature-row:focus {\n        background: #ccc;\n        color: black;\n    }\n";
-    var grid_html = "\n<div class='ol-grid-container'>\n    <table class='ol-grid-table'>\n        <tbody></tbody>\n    </table>\n</div>\n";
+    return Snapshot;
+});
+define("ol3-grid/ol3-grid", ["require", "exports", "openlayers", "bower_components/ol3-fun/ol3-fun/common", "bower_components/ol3-fun/ol3-fun/snapshot"], function (require, exports, ol, common_1, Snapshot) {
+    "use strict";
+    var css = "\n    .ol-grid {\n        position:absolute;\n    }\n    .ol-grid.top {\n        top: 0.5em;\n    }\n    .ol-grid.top-1 {\n        top: 1.5em;\n    }\n    .ol-grid.top-2 {\n        top: 2.5em;\n    }\n    .ol-grid.top-3 {\n        top: 3.5em;\n    }\n    .ol-grid.top-4 {\n        top: 4.5em;\n    }\n    .ol-grid.left {\n        left: 0.5em;\n    }\n    .ol-grid.left-1 {\n        left: 1.5em;\n    }\n    .ol-grid.left-2 {\n        left: 2.5em;\n    }\n    .ol-grid.left-3 {\n        left: 3.5em;\n    }\n    .ol-grid.left-4 {\n        left: 4.5em;\n    }\n    .ol-grid.bottom {\n        bottom: 0.5em;\n    }\n    .ol-grid.bottom-1 {\n        bottom: 1.5em;\n    }\n    .ol-grid.bottom-2 {\n        bottom: 2.5em;\n    }\n    .ol-grid.bottom-3 {\n        bottom: 3.5em;\n    }\n    .ol-grid.bottom-4 {\n        bottom: 4.5em;\n    }\n    .ol-grid.right {\n        right: 0.5em;\n    }\n    .ol-grid.right-1 {\n        right: 1.5em;\n    }\n    .ol-grid.right-2 {\n        right: 2.5em;\n    }\n    .ol-grid.right-3 {\n        right: 3.5em;\n    }\n    .ol-grid.right-4 {\n        right: 4.5em;\n    }\n    .ol-grid .ol-grid-container {\n        max-height: 16em;\n        overflow-y: auto;\n    }\n    .ol-grid .ol-grid-container.ol-hidden {\n        display: none;\n    }\n    .ol-grid .feature-row {\n        cursor: pointer;\n    }\n    .ol-grid .feature-row:hover {\n        background: black;\n        color: white;\n    }\n    .ol-grid .feature-row:focus {\n        background: #ccc;\n        color: black;\n    }\n";
+    var grid_html = "\n<div class='ol-grid-container'>\n    <table class='ol-grid-table'>\n        <tbody><tr><td/></tr></tbody>\n    </table>\n</div>\n";
     var olcss = {
         CLASS_CONTROL: 'ol-control',
         CLASS_UNSELECTABLE: 'ol-unselectable',
@@ -113,9 +183,9 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
             if (options.hideButton) {
                 button.style.display = "none";
             }
-            var grid = $(grid_html.trim());
-            _this.grid = $(".ol-grid-table", grid)[0];
-            grid.appendTo(options.element);
+            var grid = common_1.html(grid_html.trim());
+            _this.grid = grid.getElementsByClassName("ol-grid-table")[0];
+            options.element.appendChild(grid);
             if (_this.options.autoCollapse) {
                 button.addEventListener("mouseover", function () {
                     !options.expanded && _this.expand();
@@ -132,22 +202,22 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
             });
             options.expanded ? _this.expand() : _this.collapse();
             // render
-            _this.features.on(["addfeature", "addfeatures"], debounce(function () { return _this.redraw(); }));
+            _this.features.on(["addfeature", "addfeatures"], common_1.debounce(function () { return _this.redraw(); }));
             return _this;
         }
         Grid.create = function (options) {
             if (options === void 0) { options = {}; }
-            cssin('ol-grid', css);
+            common_1.cssin('ol-grid', css);
             // provide computed defaults        
-            options = mixin({
+            options = common_1.mixin({
                 openedText: options.className && -1 < options.className.indexOf("left") ? expando.left : expando.right,
                 closedText: options.className && -1 < options.className.indexOf("left") ? expando.right : expando.left,
             }, options || {});
             // provide static defaults        
-            options = mixin(mixin({}, defaults), options);
+            options = common_1.mixin(common_1.mixin({}, defaults), options);
             var element = document.createElement('div');
             element.className = options.className + " " + olcss.CLASS_UNSELECTABLE + " " + olcss.CLASS_CONTROL;
-            var gridOptions = mixin({
+            var gridOptions = common_1.mixin({
                 element: element,
                 expanded: false
             }, options);
@@ -167,21 +237,27 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
                 this.features.forEachFeature(function (f) { return void features.push(f); });
             }
             features.forEach(function (feature) {
-                var tr = $("<tr tabindex=\"0\" class=\"feature-row\"></tr>");
+                var tr = document.createElement("tr");
+                tr.tabIndex = 0;
+                tr.className = "feature-row";
                 if (_this.options.showIcon) {
-                    var td = $("<td><canvas class=\"icon\"></canvas></td>");
-                    var canvas = $(".icon", td)[0];
+                    var td = document.createElement("td");
+                    var canvas = document.createElement("canvas");
+                    td.appendChild(canvas);
+                    canvas.className = "icon";
                     canvas.width = 160;
                     canvas.height = 64;
-                    td.appendTo(tr);
+                    tr.appendChild(td);
                     Snapshot.render(canvas, feature);
                 }
                 if (_this.options.labelAttributeName) {
-                    var td = $("<td><label class=\"label\">" + feature.get(_this.options.labelAttributeName) + "</label></td>");
-                    td.appendTo(tr);
+                    var td = document.createElement("td");
+                    var label = common_1.html("<label class=\"label\">" + feature.get(_this.options.labelAttributeName) + "</label>");
+                    td.appendChild(label);
+                    tr.appendChild(td);
                 }
                 ["click", "keypress"].forEach(function (k) {
-                    return tr.on(k, function () {
+                    return tr.addEventListener(k, function () {
                         if (_this.options.autoCollapse) {
                             _this.collapse();
                         }
@@ -192,7 +268,7 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
                         });
                     });
                 });
-                tr.appendTo(tbody);
+                tbody.appendChild(tr);
             });
         };
         Grid.prototype.add = function (feature) {
@@ -205,16 +281,14 @@ define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], func
         Grid.prototype.setMap = function (map) {
             var _this = this;
             _super.prototype.setMap.call(this, map);
-            var vectorLayers = map.getLayers()
-                .getArray()
-                .filter(function (l) { return l instanceof ol.layer.Vector; })
-                .map(function (l) { return l; });
             if (this.options.currentExtent) {
-                map.getView().on(["change:center", "change:resolution"], debounce(function () { return _this.redraw(); }));
+                map.getView().on(["change:center", "change:resolution"], common_1.debounce(function () { return _this.redraw(); }));
             }
-            vectorLayers.forEach(function (l) { return l.getSource().on("addfeature", function (args) {
-                _this.add(args.feature);
-            }); });
+            if (this.options.layers) {
+                this.options.layers.forEach(function (l) { return l.getSource().on("addfeature", function (args) {
+                    _this.add(args.feature);
+                }); });
+            }
         };
         Grid.prototype.collapse = function () {
             var options = this.options;
@@ -1395,12 +1469,14 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
             setTimeout(function () { return popup.show(event.coordinate, "<div>You clicked on " + location + "</div>"); }, 50);
         });
         var grid = ol3_grid_1.Grid.create({
+            layers: [layer],
             expanded: true,
             labelAttributeName: "text"
         });
         map.addControl(grid);
         map.addControl(ol3_grid_1.Grid.create({
             className: "ol-grid top left-2",
+            layers: [layer],
             currentExtent: true,
             hideButton: false,
             closedText: "+",
@@ -1413,6 +1489,7 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
         }));
         map.addControl(ol3_grid_1.Grid.create({
             className: "ol-grid bottom left",
+            layers: [layer],
             currentExtent: true,
             hideButton: false,
             closedText: "+",
@@ -1425,6 +1502,7 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
         }));
         map.addControl(ol3_grid_1.Grid.create({
             className: "ol-grid bottom right",
+            layers: [layer],
             currentExtent: true,
             hideButton: true,
             showIcon: true,

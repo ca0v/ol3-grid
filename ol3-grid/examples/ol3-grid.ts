@@ -174,6 +174,7 @@ export function run() {
     });
 
     let grid = Grid.create({
+        layers: [layer],
         expanded: true,
         labelAttributeName: "text"
     });
@@ -182,6 +183,7 @@ export function run() {
 
     map.addControl(Grid.create({
         className: "ol-grid top left-2",
+        layers: [layer],
         currentExtent: true,
         hideButton: false,
         closedText: "+",
@@ -195,6 +197,7 @@ export function run() {
 
     map.addControl(Grid.create({
         className: "ol-grid bottom left",
+        layers: [layer],
         currentExtent: true,
         hideButton: false,
         closedText: "+",
@@ -208,6 +211,7 @@ export function run() {
 
     map.addControl(Grid.create({
         className: "ol-grid bottom right",
+        layers: [layer],
         currentExtent: true,
         hideButton: true,
         showIcon: true,
