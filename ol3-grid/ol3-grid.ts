@@ -107,7 +107,7 @@ export interface IOptions {
     expanded?: boolean;
     hideButton?: boolean;
     autoCollapse?: boolean;
-    autoSelect?: boolean;
+    autoPan?: boolean;
     canCollapse?: boolean;
     currentExtent?: boolean;
     showIcon?: boolean;
@@ -119,7 +119,6 @@ export interface IOptions {
     layers?: ol.layer.Vector[];
     // what to show on the tooltip
     placeholderText?: string;
-    onChange?: (args: { value: string }) => void;
 }
 
 const expando = {
@@ -131,7 +130,7 @@ const defaults: IOptions = {
     className: 'ol-grid top right',
     expanded: false,
     autoCollapse: true,
-    autoSelect: true,
+    autoPan: true,
     canCollapse: true,
     currentExtent: true,
     hideButton: false,
@@ -139,7 +138,7 @@ const defaults: IOptions = {
     labelAttributeName: "",
     closedText: expando.right,
     openedText: expando.left,
-    placeholderText: 'Search'
+    placeholderText: 'Features'
 };
 
 export class Grid extends ol.control.Control {
@@ -271,6 +270,12 @@ export class Grid extends ol.control.Control {
                         feature: feature,
                         row: tr[0]
                     });
+                    if (this.options.autoPan) {
+                        let center = feature.getGeometry().getClosestPoint(map.getView().getCenter());
+                        map.getView().animate({
+                            center: center
+                        });
+                    }
                 }));
 
             tbody.appendChild(tr);
@@ -278,7 +283,12 @@ export class Grid extends ol.control.Control {
         });
     }
 
-    add(feature: ol.Feature) {
+    add(feature: ol.Feature, layer?: ol.layer.Vector) {
+        let style = feature.getStyle();
+        if (!style && layer && this.options.showIcon) {
+            style = layer.getStyleFunction()(feature, 0);
+            feature.setStyle(style);
+        }
         this.features.addFeature(feature);
     }
 
@@ -296,7 +306,7 @@ export class Grid extends ol.control.Control {
 
         if (this.options.layers) {
             this.options.layers.forEach(l => l.getSource().on("addfeature", (args: { feature: ol.Feature }) => {
-                this.add(args.feature);
+                this.add(args.feature, l);
             }));
         }
     }
@@ -319,10 +329,10 @@ export class Grid extends ol.control.Control {
     }
 
     on(type: string, cb: Function): ol.Object | ol.Object[];
-    on(type: "change", cb: (args: {
-        type: string;
-        target: Grid;
-        value: string;
+    on(type: "feature-click", cb: (args: {
+        type: "feature-click";
+        feature: ol.Feature;
+        row: HTMLTableRowElement;
     }) => void): void;
     on(type: string, cb: Function) {
         return super.on(type, cb);

@@ -51,8 +51,14 @@ define("bower_components/ol3-fun/ol3-fun/common", ["require", "exports"], functi
         return a;
     }
     exports.mixin = mixin;
-    function defaults(a, b) {
-        Object.keys(b).filter(function (k) { return a[k] == undefined; }).forEach(function (k) { return a[k] = b[k]; });
+    function defaults(a) {
+        var b = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            b[_i - 1] = arguments[_i];
+        }
+        b.forEach(function (b) {
+            Object.keys(b).filter(function (k) { return a[k] === undefined; }).forEach(function (k) { return a[k] = b[k]; });
+        });
         return a;
     }
     exports.defaults = defaults;
@@ -151,7 +157,7 @@ define("ol3-grid/ol3-grid", ["require", "exports", "openlayers", "bower_componen
         className: 'ol-grid top right',
         expanded: false,
         autoCollapse: true,
-        autoSelect: true,
+        autoPan: true,
         canCollapse: true,
         currentExtent: true,
         hideButton: false,
@@ -159,7 +165,7 @@ define("ol3-grid/ol3-grid", ["require", "exports", "openlayers", "bower_componen
         labelAttributeName: "",
         closedText: expando.right,
         openedText: expando.left,
-        placeholderText: 'Search'
+        placeholderText: 'Features'
     };
     var Grid = (function (_super) {
         __extends(Grid, _super);
@@ -266,12 +272,23 @@ define("ol3-grid/ol3-grid", ["require", "exports", "openlayers", "bower_componen
                             feature: feature,
                             row: tr[0]
                         });
+                        if (_this.options.autoPan) {
+                            var center = feature.getGeometry().getClosestPoint(map.getView().getCenter());
+                            map.getView().animate({
+                                center: center
+                            });
+                        }
                     });
                 });
                 tbody.appendChild(tr);
             });
         };
-        Grid.prototype.add = function (feature) {
+        Grid.prototype.add = function (feature, layer) {
+            var style = feature.getStyle();
+            if (!style && layer && this.options.showIcon) {
+                style = layer.getStyleFunction()(feature, 0);
+                feature.setStyle(style);
+            }
             this.features.addFeature(feature);
         };
         Grid.prototype.clear = function () {
@@ -286,7 +303,7 @@ define("ol3-grid/ol3-grid", ["require", "exports", "openlayers", "bower_componen
             }
             if (this.options.layers) {
                 this.options.layers.forEach(function (l) { return l.getSource().on("addfeature", function (args) {
-                    _this.add(args.feature);
+                    _this.add(args.feature, l);
                 }); });
             }
         };
@@ -824,7 +841,7 @@ define("bower_components/ol3-symbolizer/ol3-symbolizer/styles/star/flower", ["re
         }
     ];
 });
-define("bower_components/ol3-popup/ol3-popup/paging/paging", ["require", "exports", "openlayers"], function (require, exports, ol) {
+define("bower_components/ol3-popup/ol3-popup/paging/paging", ["require", "exports", "openlayers", "jquery"], function (require, exports, ol, $) {
     "use strict";
     function getInteriorPoint(geom) {
         if (geom["getInteriorPoint"])
@@ -1058,7 +1075,7 @@ define("bower_components/ol3-popup/ol3-popup/paging/page-navigator", ["require",
     }());
     return PageNavigator;
 });
-define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", "jquery", "openlayers", "bower_components/ol3-popup/ol3-popup/paging/paging", "bower_components/ol3-popup/ol3-popup/paging/page-navigator"], function (require, exports, $, ol, paging_1, PageNavigator) {
+define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", "openlayers", "bower_components/ol3-popup/ol3-popup/paging/paging", "bower_components/ol3-popup/ol3-popup/paging/page-navigator", "bower_components/ol3-fun/ol3-fun/common"], function (require, exports, ol, paging_1, PageNavigator, common_2) {
     "use strict";
     var css = "\n.ol-popup {\n    position: absolute;\n    bottom: 12px;\n    left: -50px;\n}\n\n.ol-popup:after {\n    top: auto;\n    bottom: -20px;\n    left: 50px;\n    border: solid transparent;\n    border-top-color: inherit;\n    content: \" \";\n    height: 0;\n    width: 0;\n    position: absolute;\n    pointer-events: none;\n    border-width: 10px;\n    margin-left: -10px;\n}\n\n.ol-popup.docked {\n    position:absolute;\n    bottom:0;\n    top:0;\n    left:0;\n    right:0;\n    width:auto;\n    height:auto;\n    pointer-events: all;\n}\n\n.ol-popup.docked:after {\n    display:none;\n}\n\n.ol-popup.docked .pages {\n    max-height: inherit;\n    overflow: auto;\n    height: calc(100% - 60px);\n}\n\n.ol-popup.docked .pagination {\n    position: absolute;\n    bottom: 0;\n}\n\n.ol-popup .pagination .btn-prev::after {\n    content: \"\u21E6\"; \n}\n\n.ol-popup .pagination .btn-next::after {\n    content: \"\u21E8\"; \n}\n\n.ol-popup .pagination.hidden {\n    display: none;\n}\n\n.ol-popup .ol-popup-closer {\n    border: none;\n    background: transparent;\n    color: inherit;\n    position: absolute;\n    top: 0;\n    right: 0;\n    text-decoration: none;\n}\n    \n.ol-popup .ol-popup-closer:after {\n    content:'\u2716';\n}\n\n.ol-popup .ol-popup-docker {\n    border: none;\n    background: transparent;\n    color: inherit;\n    text-decoration: none;\n    position: absolute;\n    top: 0;\n    right: 20px;\n}\n\n.ol-popup .ol-popup-docker:after {\n    content:'\u25A1';\n}\n";
     var classNames = {
@@ -1073,19 +1090,6 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
         show: "show",
         hide: "hide"
     };
-    /**
-     * extends the base object without replacing defined attributes
-     */
-    function defaults(a) {
-        var b = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            b[_i - 1] = arguments[_i];
-        }
-        b.forEach(function (b) {
-            Object.keys(b).filter(function (k) { return a[k] === undefined; }).forEach(function (k) { return a[k] = b[k]; });
-        });
-        return a;
-    }
     /**
      * debounce: wait until it hasn't been called for a while before executing the callback
      */
@@ -1160,7 +1164,7 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
         function Popup(options) {
             if (options === void 0) { options = DEFAULT_OPTIONS; }
             var _this = this;
-            options = defaults({}, options, DEFAULT_OPTIONS);
+            options = common_2.defaults({}, options, DEFAULT_OPTIONS);
             /**
              * overlays have a map, element, offset, position, positioning
              */
@@ -1183,7 +1187,7 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
                 this.setIndicatorPosition(this.options.pointerPosition);
             }
             if (this.options.dockContainer) {
-                var dockContainer = $(this.options.dockContainer)[0];
+                var dockContainer = this.options.dockContainer;
                 if (dockContainer) {
                     var docker = this.docker = document.createElement('label');
                     docker.className = classNames.olPopupDocker;
@@ -1224,8 +1228,8 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
             }
         };
         Popup.prototype.injectCss = function (css) {
-            var style = $("<style type='text/css'>" + css + "</style>");
-            style.appendTo('head');
+            var style = common_2.html("<style type='text/css'>" + css + "</style>");
+            document.head.appendChild(style);
             this.handlers.push(function () { return style.remove(); });
         };
         Popup.prototype.setIndicatorPosition = function (offset) {
@@ -1321,7 +1325,7 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
             this.options.parentNode = this.domNode.parentElement;
             map.removeOverlay(this);
             this.domNode.classList.add(classNames.docked);
-            $(this.options.dockContainer).append(this.domNode);
+            this.options.dockContainer.appendChild(this.domNode);
         };
         Popup.prototype.undock = function () {
             this.options.parentNode.appendChild(this.domNode);
@@ -1350,11 +1354,11 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
     }(ol.Overlay));
     exports.Popup = Popup;
 });
-define("bower_components/ol3-popup/ol3-popup", ["require", "exports", "bower_components/ol3-popup/ol3-popup/ol3-popup"], function (require, exports, Popup) {
+define("bower_components/ol3-popup/index", ["require", "exports", "bower_components/ol3-popup/ol3-popup/ol3-popup"], function (require, exports, Popup) {
     "use strict";
     return Popup;
 });
-define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayers", "bower_components/ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer", "bower_components/ol3-symbolizer/ol3-symbolizer/styles/star/flower", "bower_components/ol3-popup/ol3-popup", "ol3-grid/ol3-grid"], function (require, exports, $, ol, ol3_symbolizer_1, pointStyle, ol3_popup_1, ol3_grid_1) {
+define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayers", "bower_components/ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer", "bower_components/ol3-symbolizer/ol3-symbolizer/styles/star/flower", "bower_components/ol3-popup/index", "ol3-grid/ol3-grid"], function (require, exports, $, ol, ol3_symbolizer_1, pointStyle, ol3_popup_1, ol3_grid_1) {
     "use strict";
     var styler = new ol3_symbolizer_1.StyleConverter();
     function doif(v, cb) {
@@ -1442,7 +1446,7 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
         });
         map.addLayer(layer);
         var popup = new ol3_popup_1.Popup({
-            dockContainer: '.popup-container',
+            dockContainer: document.getElementsByClassName('popup-container')[0],
             pointerPosition: 100,
             positioning: "bottom-left",
             yOffset: 20,
@@ -1482,7 +1486,7 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
             closedText: "+",
             openedText: "-",
             autoCollapse: false,
-            autoSelect: false,
+            autoPan: false,
             canCollapse: true,
             showIcon: true,
             labelAttributeName: ""
@@ -1495,7 +1499,6 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
             closedText: "+",
             openedText: "-",
             autoCollapse: true,
-            autoSelect: false,
             canCollapse: true,
             showIcon: true,
             labelAttributeName: ""

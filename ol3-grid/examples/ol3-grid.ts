@@ -2,7 +2,7 @@ import $ = require("jquery");
 import ol = require("openlayers");
 import { StyleConverter } from "ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer";
 import pointStyle = require("ol3-symbolizer/ol3-symbolizer/styles/star/flower");
-import { Popup } from "ol3-popup/ol3-popup";
+import { Popup } from "ol3-popup";
 import { Grid } from "../ol3-grid";
 
 let styler = new StyleConverter();
@@ -140,7 +140,7 @@ export function run() {
     map.addLayer(layer);
 
     let popup = new Popup({
-        dockContainer: '.popup-container',
+        dockContainer: <HTMLElement>document.getElementsByClassName('popup-container')[0],
         pointerPosition: 100,
         positioning: "bottom-left",
         yOffset: 20,
@@ -189,7 +189,7 @@ export function run() {
         closedText: "+",
         openedText: "-",
         autoCollapse: false,
-        autoSelect: false,
+        autoPan: false,
         canCollapse: true,
         showIcon: true,
         labelAttributeName: ""
@@ -203,7 +203,6 @@ export function run() {
         closedText: "+",
         openedText: "-",
         autoCollapse: true,
-        autoSelect: false,
         canCollapse: true,
         showIcon: true,
         labelAttributeName: ""
