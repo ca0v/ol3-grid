@@ -2,7 +2,7 @@ import $ = require("jquery");
 import ol = require("openlayers");
 import { StyleConverter } from "ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer";
 import pointStyle = require("ol3-symbolizer/ol3-symbolizer/styles/star/flower");
-import { Popup } from "ol3-popup/ol3-popup";
+import { Popup } from "ol3-popup";
 import { Grid } from "../ol3-grid";
 
 let styler = new StyleConverter();
@@ -56,10 +56,10 @@ const css = `
     }
     .popup-container {
         position: absolute;
-        top: 1em;
-        right: 0.5em;
-        width: 10em;
-        bottom: 1em;
+        top: 0.5em;
+        left: 25%;
+        right: 25%;
+        height: 25%;
         z-index: 1;
         pointer-events: none;
     }

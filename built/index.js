@@ -3,246 +3,6 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], function (require, exports, $, ol) {
-    "use strict";
-    function mixin(a, b) {
-        Object.keys(b).forEach(function (k) { return a[k] = b[k]; });
-        return a;
-    }
-    function cssin(name, css) {
-        var id = "style-" + name;
-        var styleTag = document.getElementById(id);
-        if (!styleTag) {
-            styleTag = document.createElement("style");
-            styleTag.id = id;
-            styleTag.innerText = css;
-            document.head.appendChild(styleTag);
-        }
-        var dataset = styleTag.dataset;
-        dataset["count"] = parseInt(dataset["count"] || "0") + 1 + "";
-        return function () {
-            dataset["count"] = parseInt(dataset["count"] || "0") - 1 + "";
-            if (dataset["count"] === "0") {
-                styleTag.remove();
-            }
-        };
-    }
-    function debounce(func, wait) {
-        if (wait === void 0) { wait = 50; }
-        var h;
-        return function () {
-            clearTimeout(h);
-            h = setTimeout(function () { return func(); }, wait);
-        };
-    }
-    var Snapshot = (function () {
-        function Snapshot() {
-        }
-        Snapshot.render = function (canvas, feature) {
-            feature = feature.clone();
-            var geom = feature.getGeometry();
-            var extent = geom.getExtent();
-            var isPoint = extent[0] === extent[2];
-            var _a = ol.extent.getCenter(extent), dx = _a[0], dy = _a[1];
-            var scale = isPoint ? 1 : Math.min(canvas.width / ol.extent.getWidth(extent), canvas.height / ol.extent.getHeight(extent));
-            geom.translate(-dx, -dy);
-            geom.scale(scale, -scale);
-            geom.translate(canvas.width / 2, canvas.height / 2);
-            var vtx = ol.render.toContext(canvas.getContext("2d"));
-            var styles = feature.getStyleFunction()(0);
-            if (!Array.isArray(styles))
-                styles = [styles];
-            styles.forEach(function (style) { return vtx.drawFeature(feature, style); });
-        };
-        /**
-         * convert features into data:image/png;base64;
-         */
-        Snapshot.snapshot = function (feature) {
-            var canvas = document.createElement("canvas");
-            var geom = feature.getGeometry();
-            this.render(canvas, feature);
-            return canvas.toDataURL();
-        };
-        return Snapshot;
-    }());
-    var css = "\n    .ol-grid {\n        position:absolute;\n    }\n    .ol-grid.top {\n        top: 0.5em;\n    }\n    .ol-grid.top-1 {\n        top: 1.5em;\n    }\n    .ol-grid.top-2 {\n        top: 2.5em;\n    }\n    .ol-grid.top-3 {\n        top: 3.5em;\n    }\n    .ol-grid.top-4 {\n        top: 4.5em;\n    }\n    .ol-grid.left {\n        left: 0.5em;\n    }\n    .ol-grid.left-1 {\n        left: 1.5em;\n    }\n    .ol-grid.left-2 {\n        left: 2.5em;\n    }\n    .ol-grid.left-3 {\n        left: 3.5em;\n    }\n    .ol-grid.left-4 {\n        left: 4.5em;\n    }\n    .ol-grid.bottom {\n        bottom: 0.5em;\n    }\n    .ol-grid.bottom-1 {\n        bottom: 1.5em;\n    }\n    .ol-grid.bottom-2 {\n        bottom: 2.5em;\n    }\n    .ol-grid.bottom-3 {\n        bottom: 3.5em;\n    }\n    .ol-grid.bottom-4 {\n        bottom: 4.5em;\n    }\n    .ol-grid.right {\n        right: 0.5em;\n    }\n    .ol-grid.right-1 {\n        right: 1.5em;\n    }\n    .ol-grid.right-2 {\n        right: 2.5em;\n    }\n    .ol-grid.right-3 {\n        right: 3.5em;\n    }\n    .ol-grid.right-4 {\n        right: 4.5em;\n    }\n    .ol-grid .ol-grid-container {\n        min-width: 8em;\n        max-height: 16em;\n        overflow-y: auto;\n    }\n    .ol-grid .ol-grid-container.ol-hidden {\n        display: none;\n    }\n    .ol-grid .feature-row {\n        cursor: pointer;\n    }\n    .ol-grid .feature-row:hover {\n        background: black;\n        color: white;\n    }\n    .ol-grid .feature-row:focus {\n        background: #ccc;\n        color: black;\n    }\n";
-    var grid_html = "\n<div class='ol-grid-container'>\n    <table class='ol-grid-table'>\n        <tbody></tbody>\n    </table>\n</div>\n";
-    var olcss = {
-        CLASS_CONTROL: 'ol-control',
-        CLASS_UNSELECTABLE: 'ol-unselectable',
-        CLASS_UNSUPPORTED: 'ol-unsupported',
-        CLASS_HIDDEN: 'ol-hidden'
-    };
-    var expando = {
-        right: '»',
-        left: '«'
-    };
-    var defaults = {
-        className: 'ol-grid top right',
-        expanded: false,
-        autoCollapse: true,
-        autoSelect: true,
-        canCollapse: true,
-        currentExtent: true,
-        hideButton: false,
-        showIcon: false,
-        labelAttributeName: "",
-        closedText: expando.right,
-        openedText: expando.left,
-        placeholderText: 'Search'
-    };
-    var Grid = (function (_super) {
-        __extends(Grid, _super);
-        function Grid(options) {
-            var _this = this;
-            if (options.hideButton) {
-                options.canCollapse = false;
-                options.autoCollapse = false;
-                options.expanded = true;
-            }
-            _this = _super.call(this, {
-                element: options.element,
-                target: options.target
-            }) || this;
-            _this.options = options;
-            _this.features = new ol.source.Vector();
-            var button = _this.button = document.createElement('button');
-            button.setAttribute('type', 'button');
-            button.title = options.placeholderText;
-            options.element.appendChild(button);
-            if (options.hideButton) {
-                button.style.display = "none";
-            }
-            var grid = $(grid_html.trim());
-            _this.grid = $(".ol-grid-table", grid)[0];
-            grid.appendTo(options.element);
-            if (_this.options.autoCollapse) {
-                button.addEventListener("mouseover", function () {
-                    !options.expanded && _this.expand();
-                });
-                button.addEventListener("focus", function () {
-                    !options.expanded && _this.expand();
-                });
-                button.addEventListener("blur", function () {
-                    options.expanded && _this.collapse();
-                });
-            }
-            button.addEventListener("click", function () {
-                options.expanded ? _this.collapse() : _this.expand();
-            });
-            options.expanded ? _this.expand() : _this.collapse();
-            // render
-            _this.features.on(["addfeature", "addfeatures"], debounce(function () { return _this.redraw(); }));
-            return _this;
-        }
-        Grid.create = function (options) {
-            if (options === void 0) { options = {}; }
-            cssin('ol-grid', css);
-            // provide computed defaults        
-            options = mixin({
-                openedText: options.className && -1 < options.className.indexOf("left") ? expando.left : expando.right,
-                closedText: options.className && -1 < options.className.indexOf("left") ? expando.right : expando.left,
-            }, options || {});
-            // provide static defaults        
-            options = mixin(mixin({}, defaults), options);
-            var element = document.createElement('div');
-            element.className = options.className + " " + olcss.CLASS_UNSELECTABLE + " " + olcss.CLASS_CONTROL;
-            var gridOptions = mixin({
-                element: element,
-                expanded: false
-            }, options);
-            return new Grid(gridOptions);
-        };
-        Grid.prototype.redraw = function () {
-            var _this = this;
-            var map = this.getMap();
-            var extent = map.getView().calculateExtent(map.getSize());
-            var tbody = this.grid.tBodies[0];
-            tbody.innerHTML = "";
-            var features = [];
-            if (this.options.currentExtent) {
-                this.features.forEachFeatureInExtent(extent, function (f) { return void features.push(f); });
-            }
-            else {
-                this.features.forEachFeature(function (f) { return void features.push(f); });
-            }
-            features.forEach(function (feature) {
-                var tr = $("<tr tabindex=\"0\" class=\"feature-row\"></tr>");
-                if (_this.options.showIcon) {
-                    var td = $("<td><canvas class=\"icon\"></canvas></td>");
-                    var canvas = $(".icon", td)[0];
-                    canvas.width = 160;
-                    canvas.height = 64;
-                    td.appendTo(tr);
-                    Snapshot.render(canvas, feature);
-                }
-                if (_this.options.labelAttributeName) {
-                    var td = $("<td><label class=\"label\">" + feature.get(_this.options.labelAttributeName) + "</label></td>");
-                    td.appendTo(tr);
-                }
-                ["click", "keypress"].forEach(function (k) {
-                    return tr.on(k, function () {
-                        if (_this.options.autoCollapse) {
-                            _this.collapse();
-                        }
-                        _this.dispatchEvent({
-                            type: "feature-click",
-                            feature: feature,
-                            row: tr[0]
-                        });
-                    });
-                });
-                tr.appendTo(tbody);
-            });
-        };
-        Grid.prototype.add = function (feature) {
-            this.features.addFeature(feature);
-        };
-        Grid.prototype.clear = function () {
-            var tbody = this.grid.tBodies[0];
-            tbody.innerHTML = "";
-        };
-        Grid.prototype.setMap = function (map) {
-            var _this = this;
-            _super.prototype.setMap.call(this, map);
-            var vectorLayers = map.getLayers()
-                .getArray()
-                .filter(function (l) { return l instanceof ol.layer.Vector; })
-                .map(function (l) { return l; });
-            if (this.options.currentExtent) {
-                map.getView().on(["change:center", "change:resolution"], debounce(function () { return _this.redraw(); }));
-            }
-            vectorLayers.forEach(function (l) { return l.getSource().on("addfeature", function (args) {
-                _this.add(args.feature);
-            }); });
-        };
-        Grid.prototype.collapse = function () {
-            var options = this.options;
-            if (!options.canCollapse)
-                return;
-            options.expanded = false;
-            this.grid.parentElement.classList.toggle(olcss.CLASS_HIDDEN, true);
-            this.button.classList.toggle(olcss.CLASS_HIDDEN, false);
-            this.button.innerHTML = options.closedText;
-        };
-        Grid.prototype.expand = function () {
-            var options = this.options;
-            options.expanded = true;
-            this.grid.parentElement.classList.toggle(olcss.CLASS_HIDDEN, false);
-            this.button.classList.toggle(olcss.CLASS_HIDDEN, true);
-            this.button.innerHTML = options.openedText;
-        };
-        Grid.prototype.on = function (type, cb) {
-            return _super.prototype.on.call(this, type, cb);
-        };
-        return Grid;
-    }(ol.control.Control));
-    exports.Grid = Grid;
-});
-define("index", ["require", "exports", "ol3-grid/ol3-grid"], function (require, exports, Grid) {
-    "use strict";
-    return Grid;
-});
 define("ol3-grid/examples/index", ["require", "exports"], function (require, exports) {
     "use strict";
     function run() {
@@ -1276,11 +1036,247 @@ define("bower_components/ol3-popup/ol3-popup/ol3-popup", ["require", "exports", 
     }(ol.Overlay));
     exports.Popup = Popup;
 });
-define("bower_components/ol3-popup/ol3-popup", ["require", "exports", "bower_components/ol3-popup/ol3-popup/ol3-popup"], function (require, exports, Popup) {
+define("bower_components/ol3-popup/index", ["require", "exports", "bower_components/ol3-popup/ol3-popup/ol3-popup"], function (require, exports, Popup) {
     "use strict";
     return Popup;
 });
-define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayers", "bower_components/ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer", "bower_components/ol3-symbolizer/ol3-symbolizer/styles/star/flower", "bower_components/ol3-popup/ol3-popup", "ol3-grid/ol3-grid"], function (require, exports, $, ol, ol3_symbolizer_1, pointStyle, ol3_popup_1, ol3_grid_1) {
+define("ol3-grid/ol3-grid", ["require", "exports", "jquery", "openlayers"], function (require, exports, $, ol) {
+    "use strict";
+    function mixin(a, b) {
+        Object.keys(b).forEach(function (k) { return a[k] = b[k]; });
+        return a;
+    }
+    function cssin(name, css) {
+        var id = "style-" + name;
+        var styleTag = document.getElementById(id);
+        if (!styleTag) {
+            styleTag = document.createElement("style");
+            styleTag.id = id;
+            styleTag.innerText = css;
+            document.head.appendChild(styleTag);
+        }
+        var dataset = styleTag.dataset;
+        dataset["count"] = parseInt(dataset["count"] || "0") + 1 + "";
+        return function () {
+            dataset["count"] = parseInt(dataset["count"] || "0") - 1 + "";
+            if (dataset["count"] === "0") {
+                styleTag.remove();
+            }
+        };
+    }
+    function debounce(func, wait) {
+        if (wait === void 0) { wait = 50; }
+        var h;
+        return function () {
+            clearTimeout(h);
+            h = setTimeout(function () { return func(); }, wait);
+        };
+    }
+    var Snapshot = (function () {
+        function Snapshot() {
+        }
+        Snapshot.render = function (canvas, feature) {
+            feature = feature.clone();
+            var geom = feature.getGeometry();
+            var extent = geom.getExtent();
+            var isPoint = extent[0] === extent[2];
+            var _a = ol.extent.getCenter(extent), dx = _a[0], dy = _a[1];
+            var scale = isPoint ? 1 : Math.min(canvas.width / ol.extent.getWidth(extent), canvas.height / ol.extent.getHeight(extent));
+            geom.translate(-dx, -dy);
+            geom.scale(scale, -scale);
+            geom.translate(canvas.width / 2, canvas.height / 2);
+            var vtx = ol.render.toContext(canvas.getContext("2d"));
+            var styles = feature.getStyleFunction()(0);
+            if (!Array.isArray(styles))
+                styles = [styles];
+            styles.forEach(function (style) { return vtx.drawFeature(feature, style); });
+        };
+        /**
+         * convert features into data:image/png;base64;
+         */
+        Snapshot.snapshot = function (feature) {
+            var canvas = document.createElement("canvas");
+            var geom = feature.getGeometry();
+            this.render(canvas, feature);
+            return canvas.toDataURL();
+        };
+        return Snapshot;
+    }());
+    var css = "\n    .ol-grid {\n        position:absolute;\n    }\n    .ol-grid.top {\n        top: 0.5em;\n    }\n    .ol-grid.top-1 {\n        top: 1.5em;\n    }\n    .ol-grid.top-2 {\n        top: 2.5em;\n    }\n    .ol-grid.top-3 {\n        top: 3.5em;\n    }\n    .ol-grid.top-4 {\n        top: 4.5em;\n    }\n    .ol-grid.left {\n        left: 0.5em;\n    }\n    .ol-grid.left-1 {\n        left: 1.5em;\n    }\n    .ol-grid.left-2 {\n        left: 2.5em;\n    }\n    .ol-grid.left-3 {\n        left: 3.5em;\n    }\n    .ol-grid.left-4 {\n        left: 4.5em;\n    }\n    .ol-grid.bottom {\n        bottom: 0.5em;\n    }\n    .ol-grid.bottom-1 {\n        bottom: 1.5em;\n    }\n    .ol-grid.bottom-2 {\n        bottom: 2.5em;\n    }\n    .ol-grid.bottom-3 {\n        bottom: 3.5em;\n    }\n    .ol-grid.bottom-4 {\n        bottom: 4.5em;\n    }\n    .ol-grid.right {\n        right: 0.5em;\n    }\n    .ol-grid.right-1 {\n        right: 1.5em;\n    }\n    .ol-grid.right-2 {\n        right: 2.5em;\n    }\n    .ol-grid.right-3 {\n        right: 3.5em;\n    }\n    .ol-grid.right-4 {\n        right: 4.5em;\n    }\n    .ol-grid .ol-grid-container {\n        min-width: 8em;\n        max-height: 16em;\n        overflow-y: auto;\n    }\n    .ol-grid .ol-grid-container.ol-hidden {\n        display: none;\n    }\n    .ol-grid .feature-row {\n        cursor: pointer;\n    }\n    .ol-grid .feature-row:hover {\n        background: black;\n        color: white;\n    }\n    .ol-grid .feature-row:focus {\n        background: #ccc;\n        color: black;\n    }\n";
+    var grid_html = "\n<div class='ol-grid-container'>\n    <table class='ol-grid-table'>\n        <tbody></tbody>\n    </table>\n</div>\n";
+    var olcss = {
+        CLASS_CONTROL: 'ol-control',
+        CLASS_UNSELECTABLE: 'ol-unselectable',
+        CLASS_UNSUPPORTED: 'ol-unsupported',
+        CLASS_HIDDEN: 'ol-hidden'
+    };
+    var expando = {
+        right: '»',
+        left: '«'
+    };
+    var defaults = {
+        className: 'ol-grid top right',
+        expanded: false,
+        autoCollapse: true,
+        autoSelect: true,
+        canCollapse: true,
+        currentExtent: true,
+        hideButton: false,
+        showIcon: false,
+        labelAttributeName: "",
+        closedText: expando.right,
+        openedText: expando.left,
+        placeholderText: 'Search'
+    };
+    var Grid = (function (_super) {
+        __extends(Grid, _super);
+        function Grid(options) {
+            var _this = this;
+            if (options.hideButton) {
+                options.canCollapse = false;
+                options.autoCollapse = false;
+                options.expanded = true;
+            }
+            _this = _super.call(this, {
+                element: options.element,
+                target: options.target
+            }) || this;
+            _this.options = options;
+            _this.features = new ol.source.Vector();
+            var button = _this.button = document.createElement('button');
+            button.setAttribute('type', 'button');
+            button.title = options.placeholderText;
+            options.element.appendChild(button);
+            if (options.hideButton) {
+                button.style.display = "none";
+            }
+            var grid = $(grid_html.trim());
+            _this.grid = $(".ol-grid-table", grid)[0];
+            grid.appendTo(options.element);
+            if (_this.options.autoCollapse) {
+                button.addEventListener("mouseover", function () {
+                    !options.expanded && _this.expand();
+                });
+                button.addEventListener("focus", function () {
+                    !options.expanded && _this.expand();
+                });
+                button.addEventListener("blur", function () {
+                    options.expanded && _this.collapse();
+                });
+            }
+            button.addEventListener("click", function () {
+                options.expanded ? _this.collapse() : _this.expand();
+            });
+            options.expanded ? _this.expand() : _this.collapse();
+            // render
+            _this.features.on(["addfeature", "addfeatures"], debounce(function () { return _this.redraw(); }));
+            return _this;
+        }
+        Grid.create = function (options) {
+            if (options === void 0) { options = {}; }
+            cssin('ol-grid', css);
+            // provide computed defaults        
+            options = mixin({
+                openedText: options.className && -1 < options.className.indexOf("left") ? expando.left : expando.right,
+                closedText: options.className && -1 < options.className.indexOf("left") ? expando.right : expando.left,
+            }, options || {});
+            // provide static defaults        
+            options = mixin(mixin({}, defaults), options);
+            var element = document.createElement('div');
+            element.className = options.className + " " + olcss.CLASS_UNSELECTABLE + " " + olcss.CLASS_CONTROL;
+            var gridOptions = mixin({
+                element: element,
+                expanded: false
+            }, options);
+            return new Grid(gridOptions);
+        };
+        Grid.prototype.redraw = function () {
+            var _this = this;
+            var map = this.getMap();
+            var extent = map.getView().calculateExtent(map.getSize());
+            var tbody = this.grid.tBodies[0];
+            tbody.innerHTML = "";
+            var features = [];
+            if (this.options.currentExtent) {
+                this.features.forEachFeatureInExtent(extent, function (f) { return void features.push(f); });
+            }
+            else {
+                this.features.forEachFeature(function (f) { return void features.push(f); });
+            }
+            features.forEach(function (feature) {
+                var tr = $("<tr tabindex=\"0\" class=\"feature-row\"></tr>");
+                if (_this.options.showIcon) {
+                    var td = $("<td><canvas class=\"icon\"></canvas></td>");
+                    var canvas = $(".icon", td)[0];
+                    canvas.width = 160;
+                    canvas.height = 64;
+                    td.appendTo(tr);
+                    Snapshot.render(canvas, feature);
+                }
+                if (_this.options.labelAttributeName) {
+                    var td = $("<td><label class=\"label\">" + feature.get(_this.options.labelAttributeName) + "</label></td>");
+                    td.appendTo(tr);
+                }
+                ["click", "keypress"].forEach(function (k) {
+                    return tr.on(k, function () {
+                        if (_this.options.autoCollapse) {
+                            _this.collapse();
+                        }
+                        _this.dispatchEvent({
+                            type: "feature-click",
+                            feature: feature,
+                            row: tr[0]
+                        });
+                    });
+                });
+                tr.appendTo(tbody);
+            });
+        };
+        Grid.prototype.add = function (feature) {
+            this.features.addFeature(feature);
+        };
+        Grid.prototype.clear = function () {
+            var tbody = this.grid.tBodies[0];
+            tbody.innerHTML = "";
+        };
+        Grid.prototype.setMap = function (map) {
+            var _this = this;
+            _super.prototype.setMap.call(this, map);
+            var vectorLayers = map.getLayers()
+                .getArray()
+                .filter(function (l) { return l instanceof ol.layer.Vector; })
+                .map(function (l) { return l; });
+            if (this.options.currentExtent) {
+                map.getView().on(["change:center", "change:resolution"], debounce(function () { return _this.redraw(); }));
+            }
+            vectorLayers.forEach(function (l) { return l.getSource().on("addfeature", function (args) {
+                _this.add(args.feature);
+            }); });
+        };
+        Grid.prototype.collapse = function () {
+            var options = this.options;
+            if (!options.canCollapse)
+                return;
+            options.expanded = false;
+            this.grid.parentElement.classList.toggle(olcss.CLASS_HIDDEN, true);
+            this.button.classList.toggle(olcss.CLASS_HIDDEN, false);
+            this.button.innerHTML = options.closedText;
+        };
+        Grid.prototype.expand = function () {
+            var options = this.options;
+            options.expanded = true;
+            this.grid.parentElement.classList.toggle(olcss.CLASS_HIDDEN, false);
+            this.button.classList.toggle(olcss.CLASS_HIDDEN, true);
+            this.button.innerHTML = options.openedText;
+        };
+        Grid.prototype.on = function (type, cb) {
+            return _super.prototype.on.call(this, type, cb);
+        };
+        return Grid;
+    }(ol.control.Control));
+    exports.Grid = Grid;
+});
+define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayers", "bower_components/ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer", "bower_components/ol3-symbolizer/ol3-symbolizer/styles/star/flower", "bower_components/ol3-popup/index", "ol3-grid/ol3-grid"], function (require, exports, $, ol, ol3_symbolizer_1, pointStyle, ol3_popup_1, ol3_grid_1) {
     "use strict";
     var styler = new ol3_symbolizer_1.StyleConverter();
     function doif(v, cb) {
@@ -1317,7 +1313,7 @@ define("ol3-grid/examples/ol3-grid", ["require", "exports", "jquery", "openlayer
         return (adverb + " " + noun).toLocaleUpperCase();
     }
     var html = "\n<div class='popup'>\n    <div class='popup-container'>\n    </div>\n</div>\n";
-    var css = "\n<style name=\"popup\" type=\"text/css\">\n    html, body, .map {\n        width: 100%;\n        height: 100%;\n        padding: 0;\n        overflow: hidden;\n        margin: 0;    \n    }\n    .popup-container {\n        position: absolute;\n        top: 1em;\n        right: 0.5em;\n        width: 10em;\n        bottom: 1em;\n        z-index: 1;\n        pointer-events: none;\n    }\n    .popup-container .ol-popup.docked {\n        min-width: auto;\n    }\n</style>\n";
+    var css = "\n<style name=\"popup\" type=\"text/css\">\n    html, body, .map {\n        width: 100%;\n        height: 100%;\n        padding: 0;\n        overflow: hidden;\n        margin: 0;    \n    }\n    .popup-container {\n        position: absolute;\n        top: 0.5em;\n        left: 25%;\n        right: 25%;\n        height: 25%;\n        z-index: 1;\n        pointer-events: none;\n    }\n    .popup-container .ol-popup.docked {\n        min-width: auto;\n    }\n</style>\n";
     var css_popup = "\n.ol-popup {\n    color: white;\n    background-color: rgba(77,77,77,0.7);\n    border: 1px solid white;\n    min-width: 200px;\n    padding: 12px;\n}\n\n.ol-popup:after {\n    border-top-color: white;\n}\n";
     function run() {
         $(html).appendTo(".map");

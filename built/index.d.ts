@@ -1,49 +1,3 @@
-declare module "ol3-grid/ol3-grid" {
-    import ol = require("openlayers");
-    export interface IOptions {
-        className?: string;
-        expanded?: boolean;
-        hideButton?: boolean;
-        autoCollapse?: boolean;
-        autoSelect?: boolean;
-        canCollapse?: boolean;
-        currentExtent?: boolean;
-        showIcon?: boolean;
-        labelAttributeName?: string;
-        closedText?: string;
-        openedText?: string;
-        element?: HTMLElement;
-        target?: HTMLElement;
-        placeholderText?: string;
-        onChange?: (args: {
-            value: string;
-        }) => void;
-    }
-    export class Grid extends ol.control.Control {
-        static create(options?: IOptions): Grid;
-        private features;
-        private button;
-        private grid;
-        private options;
-        constructor(options: IOptions);
-        redraw(): void;
-        add(feature: ol.Feature): void;
-        clear(): void;
-        setMap(map: ol.Map): void;
-        collapse(): void;
-        expand(): void;
-        on(type: string, cb: Function): ol.Object | ol.Object[];
-        on(type: "change", cb: (args: {
-            type: string;
-            target: Grid;
-            value: string;
-        }) => void): void;
-    }
-}
-declare module "index" {
-    import Grid = require("ol3-grid/ol3-grid");
-    export = Grid;
-}
 declare module "ol3-grid/examples/index" {
     export function run(): void;
 }
@@ -363,12 +317,51 @@ declare module "bower_components/ol3-popup/ol3-popup/ol3-popup" {
         applyOffset([x, y]: [number, number]): void;
     }
 }
-declare module "bower_components/ol3-popup/ol3-popup" {
-    /**
-     * forces 'ol3-popup' namespace
-     */
+declare module "bower_components/ol3-popup/index" {
     import Popup = require("bower_components/ol3-popup/ol3-popup/ol3-popup");
     export = Popup;
+}
+declare module "ol3-grid/ol3-grid" {
+    import ol = require("openlayers");
+    export interface IOptions {
+        className?: string;
+        expanded?: boolean;
+        hideButton?: boolean;
+        autoCollapse?: boolean;
+        autoSelect?: boolean;
+        canCollapse?: boolean;
+        currentExtent?: boolean;
+        showIcon?: boolean;
+        labelAttributeName?: string;
+        closedText?: string;
+        openedText?: string;
+        element?: HTMLElement;
+        target?: HTMLElement;
+        placeholderText?: string;
+        onChange?: (args: {
+            value: string;
+        }) => void;
+    }
+    export class Grid extends ol.control.Control {
+        static create(options?: IOptions): Grid;
+        private features;
+        private button;
+        private grid;
+        private options;
+        constructor(options: IOptions);
+        redraw(): void;
+        add(feature: ol.Feature): void;
+        clear(): void;
+        setMap(map: ol.Map): void;
+        collapse(): void;
+        expand(): void;
+        on(type: string, cb: Function): ol.Object | ol.Object[];
+        on(type: "change", cb: (args: {
+            type: string;
+            target: Grid;
+            value: string;
+        }) => void): void;
+    }
 }
 declare module "ol3-grid/examples/ol3-grid" {
     import ol = require("openlayers");

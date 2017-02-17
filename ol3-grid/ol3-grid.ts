@@ -39,7 +39,7 @@ class Snapshot {
 
     static render(canvas: HTMLCanvasElement, feature: ol.Feature) {
         feature = feature.clone();
-        let geom = feature.getGeometry();
+        let geom = <ol.geom.Point | ol.geom.Polygon>feature.getGeometry();
         let extent = geom.getExtent();
 
         let isPoint = extent[0] === extent[2];
