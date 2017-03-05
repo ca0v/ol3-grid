@@ -4,6 +4,7 @@ import { StyleConverter } from "ol3-symbolizer/ol3-symbolizer/format/ol3-symboli
 import pointStyle = require("ol3-symbolizer/ol3-symbolizer/styles/star/flower");
 import { Popup } from "ol3-popup";
 import { Grid } from "../ol3-grid";
+import { zoomToFeature } from "ol3-fun/ol3-fun/navigation";
 
 let styler = new StyleConverter();
 
@@ -139,14 +140,14 @@ export function run() {
 
     map.addLayer(layer);
 
-    let popup = new Popup({
+    let popup = Popup.create({
+        map: map,
         dockContainer: <HTMLElement>document.getElementsByClassName('popup-container')[0],
         pointerPosition: 100,
         positioning: "bottom-left",
         yOffset: 20,
         css: css_popup
     });
-    popup.setMap(map);
 
     map.on("click", (event: {
         coordinate: [number, number];
@@ -165,7 +166,7 @@ export function run() {
         pointStyle[0].star.points = 3 + (Math.random() * 12) | 0;
         pointStyle[0].star.stroke.width = 1 + Math.random() * 5;
         let style = pointStyle.map(s => styler.fromJson(s));
-        feature.setStyle((resolution: number) => style);
+        feature.setStyle(style);
 
         source.addFeature(feature);
 
@@ -174,17 +175,18 @@ export function run() {
     });
 
     let grid = Grid.create({
+        map: map,
         layers: [layer],
         expanded: true,
         labelAttributeName: "text"
     });
 
-    map.addControl(grid);
 
-    map.addControl(Grid.create({
+    let manualPanGrid = Grid.create({
+        map: map,
         className: "ol-grid top left-2",
         layers: [layer],
-        currentExtent: true,
+        currentExtent: false,
         hideButton: false,
         closedText: "+",
         openedText: "-",
@@ -192,10 +194,15 @@ export function run() {
         autoPan: false,
         canCollapse: true,
         showIcon: true,
-        labelAttributeName: ""
-    }));
+        labelAttributeName: "",
+        placeholderText: "Custom Handler",
+        zoomDuration: 4000,
+        zoomMinResolution: 8,
+        zoomPadding: 1000
+    });
 
-    map.addControl(Grid.create({
+    Grid.create({
+        map: map,
         className: "ol-grid bottom left",
         layers: [layer],
         currentExtent: true,
@@ -206,27 +213,25 @@ export function run() {
         canCollapse: true,
         showIcon: true,
         labelAttributeName: ""
-    }));
+    });
 
-    map.addControl(Grid.create({
+    Grid.create({
+        map: map,
+        autoPan: true,
         className: "ol-grid bottom right",
         layers: [layer],
         currentExtent: true,
         hideButton: true,
         showIcon: true,
         labelAttributeName: "text"
-    }));
+    });
 
-    map.getControls().getArray()
-        .filter(c => c instanceof Grid)
-        .forEach(grid => grid.on("feature-click", (args: { feature: ol.Feature }) => {
-            let center = args.feature.getGeometry().getClosestPoint(map.getView().getCenter());
-            map.getView().animate({
-                center: center
-            });
-            popup.show(center, args.feature.get("text"));
-        }));
-
+    manualPanGrid.on("feature-click", (args: { feature: ol.Feature }) => {
+        let center = args.feature.getGeometry().getClosestPoint(map.getView().getCenter());
+        zoomToFeature(map, args.feature, { padding: 50, minResolution: 1 / Math.pow(2, 20) });
+        popup.show(center, args.feature.get("text"));
+        return true;
+    });
     return map;
 
 }

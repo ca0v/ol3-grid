@@ -1,6 +1,7 @@
 import ol = require("openlayers");
-import { html, mixin, cssin, debounce } from "ol3-fun/ol3-fun/common";
+import { cssin, debounce, defaults, html, mixin, } from "ol3-fun/ol3-fun/common";
 import Snapshot = require("ol3-fun/ol3-fun/snapshot");
+import { zoomToFeature } from "ol3-fun/ol3-fun/navigation";
 
 const css = `
     .ol-grid {
@@ -101,7 +102,8 @@ let olcss = {
     CLASS_HIDDEN: 'ol-hidden'
 };
 
-export interface IOptions {
+export interface GridOptions {
+    map?: ol.Map;
     // what css class name to assign to the main element
     className?: string;
     expanded?: boolean;
@@ -119,6 +121,10 @@ export interface IOptions {
     layers?: ol.layer.Vector[];
     // what to show on the tooltip
     placeholderText?: string;
+    // zoom-to-feature options
+    zoomDuration?: number;
+    zoomPadding?: number;
+    zoomMinResolution?: number;
 }
 
 const expando = {
@@ -126,35 +132,37 @@ const expando = {
     left: '«'
 };
 
-const defaults: IOptions = {
-    className: 'ol-grid top right',
-    expanded: false,
-    autoCollapse: true,
-    autoPan: true,
-    canCollapse: true,
-    currentExtent: true,
-    hideButton: false,
-    showIcon: false,
-    labelAttributeName: "",
-    closedText: expando.right,
-    openedText: expando.left,
-    placeholderText: 'Features'
-};
-
 export class Grid extends ol.control.Control {
 
-    static create(options: IOptions = {}): Grid {
+    static DEFAULT_OPTIONS: GridOptions = {
+        className: 'ol-grid top right',
+        expanded: false,
+        autoCollapse: true,
+        autoPan: true,
+        canCollapse: true,
+        currentExtent: true,
+        hideButton: false,
+        showIcon: false,
+        labelAttributeName: "",
+        closedText: expando.right,
+        openedText: expando.left,
+        // what to show on the tooltip
+        placeholderText: 'Features',
+        // zoom-to-feature options
+        zoomDuration: 2000,
+        zoomPadding: 256,
+        zoomMinResolution: 1 / Math.pow(2, 22)
+    }
+
+    static create(options: GridOptions = {}): Grid {
 
         cssin('ol-grid', css);
 
-        // provide computed defaults        
-        options = mixin({
+        // provide computed and static defaults
+        options = defaults(mixin({
             openedText: options.className && -1 < options.className.indexOf("left") ? expando.left : expando.right,
             closedText: options.className && -1 < options.className.indexOf("left") ? expando.right : expando.left,
-        }, options || {});
-
-        // provide static defaults        
-        options = mixin(mixin({}, defaults), options);
+        }, options), Grid.DEFAULT_OPTIONS);
 
         let element = document.createElement('div');
         element.className = `${options.className} ${olcss.CLASS_UNSELECTABLE} ${olcss.CLASS_CONTROL}`;
@@ -164,7 +172,11 @@ export class Grid extends ol.control.Control {
             expanded: false
         }, options);
 
-        return new Grid(gridOptions);
+        let grid = new Grid(gridOptions);
+        if (options.map) {
+            options.map.addControl(grid);
+        }
+        return grid;
     }
 
     private features: ol.source.Vector;
@@ -172,9 +184,9 @@ export class Grid extends ol.control.Control {
     private button: HTMLButtonElement;
     private grid: HTMLTableElement;
 
-    private options: IOptions;
+    private options: GridOptions;
 
-    constructor(options: IOptions) {
+    private constructor(options: GridOptions) {
 
         if (options.hideButton) {
             options.canCollapse = false;
@@ -225,7 +237,9 @@ export class Grid extends ol.control.Control {
     }
 
     redraw() {
-        let map = this.getMap();
+        let options = this.options;
+        let map = options.map;
+
         let extent = map.getView().calculateExtent(map.getSize());
         let tbody = this.grid.tBodies[0];
         tbody.innerHTML = "";
@@ -271,9 +285,10 @@ export class Grid extends ol.control.Control {
                         row: tr[0]
                     });
                     if (this.options.autoPan) {
-                        let center = feature.getGeometry().getClosestPoint(map.getView().getCenter());
-                        map.getView().animate({
-                            center: center
+                        zoomToFeature(map, feature, {
+                            duration: options.zoomDuration,
+                            padding: options.zoomPadding,
+                            minResolution: options.zoomMinResolution
                         });
                     }
                 }));
