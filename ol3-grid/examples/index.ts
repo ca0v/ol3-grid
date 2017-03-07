@@ -3,6 +3,7 @@ export function run() {
     let path = `${l.origin}${l.pathname}?run=ol3-grid/examples/`;
     let labs = `
     index
+    draw-edit-grid
     ol3-grid
     `;
 
