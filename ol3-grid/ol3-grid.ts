@@ -302,7 +302,15 @@ export class Grid extends ol.control.Control {
         let style = feature.getStyle();
         if (!style && layer && this.options.showIcon) {
             style = layer.getStyleFunction()(feature, 0);
+            // need to capture style but don't want to effect original feature
+            let originalFeature = feature;
+            feature = originalFeature.clone();
             feature.setStyle(style);
+            // how to keep geometry in sync?
+            originalFeature.on("change", debounce(() => {
+                feature.setGeometry(originalFeature.getGeometry());
+                this.redraw();
+            }));
         }
         this.features.addFeature(feature);
     }
