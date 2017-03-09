@@ -127,15 +127,10 @@ export function run() {
             })]
     });
 
-    let features = new ol.Collection<ol.Feature>();
-
-    let source = new ol.source.Vector({
-        features: features
-    });
-
-
     let layer = new ol.layer.Vector({
-        source: source
+        source: new ol.source.Vector({
+            features: new ol.Collection<ol.Feature>()
+        })
     });
 
     map.addLayer(layer);
@@ -168,13 +163,13 @@ export function run() {
         let style = pointStyle.map(s => styler.fromJson(s));
         feature.setStyle(style);
 
-        source.addFeature(feature);
+        layer.getSource().addFeature(feature);
 
         setTimeout(() => popup.show(event.coordinate, `<div>You clicked on ${location}</div>`), 50);
 
     });
 
-    let grid = Grid.create({
+    Grid.create({
         map: map,
         layers: [layer],
         expanded: true,
@@ -182,7 +177,7 @@ export function run() {
     });
 
 
-    let manualPanGrid = Grid.create({
+    Grid.create({
         map: map,
         className: "ol-grid top left-2",
         layers: [layer],
@@ -199,6 +194,11 @@ export function run() {
         zoomDuration: 4000,
         zoomMinResolution: 8,
         zoomPadding: 1000
+    }).on("feature-click", (args: { feature: ol.Feature }) => {
+        let center = args.feature.getGeometry().getClosestPoint(map.getView().getCenter());
+        zoomToFeature(map, args.feature, { padding: 50, minResolution: 1 / Math.pow(2, 20) });
+        popup.show(center, args.feature.get("text"));
+        return true;
     });
 
     Grid.create({
@@ -226,12 +226,6 @@ export function run() {
         labelAttributeName: "text"
     });
 
-    manualPanGrid.on("feature-click", (args: { feature: ol.Feature }) => {
-        let center = args.feature.getGeometry().getClosestPoint(map.getView().getCenter());
-        zoomToFeature(map, args.feature, { padding: 50, minResolution: 1 / Math.pow(2, 20) });
-        popup.show(center, args.feature.get("text"));
-        return true;
-    });
     return map;
 
 }
