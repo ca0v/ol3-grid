@@ -6,6 +6,7 @@ import { Grid } from "../ol3-grid";
 import { zoomToFeature } from "ol3-fun/ol3-fun/navigation";
 import { Draw } from "ol3-draw";
 import { Modify } from "ol3-draw/ol3-draw/ol3-edit";
+import { Delete } from "ol3-draw/ol3-draw/ol3-delete";
 
 let styler = new StyleConverter();
 
@@ -94,51 +95,24 @@ export function run() {
 
     map.addLayer(layer);
 
-    let grid = Grid.create({
-        map: map,
-        layers: [layer],
-        expanded: true,
-        labelAttributeName: "text"
-    });
-
-
-    let manualPanGrid = Grid.create({
-        map: map,
-        className: "ol-grid top left-2",
-        layers: [layer],
-        currentExtent: false,
-        hideButton: false,
-        closedText: "+",
-        openedText: "-",
-        autoCollapse: false,
-        autoPan: false,
-        canCollapse: true,
-        showIcon: true,
-        labelAttributeName: "",
-        placeholderText: "Custom Handler",
-        zoomDuration: 4000,
-        zoomMinResolution: 8,
-        zoomPadding: 1000
-    });
-
     Grid.create({
         map: map,
-        className: "ol-grid bottom left",
+        className: "ol-grid top-4 left",
         layers: [layer],
         currentExtent: true,
         hideButton: false,
         closedText: "+",
         openedText: "-",
-        autoCollapse: true,
+        autoCollapse: false,
+        autoPan: true,
         canCollapse: true,
+        expanded: true,
         showIcon: true,
-        labelAttributeName: ""
-    });
-
-    manualPanGrid.on("feature-click", (args: { feature: ol.Feature }) => {
-        let center = args.feature.getGeometry().getClosestPoint(map.getView().getCenter());
-        zoomToFeature(map, args.feature, { padding: 50, minResolution: 1 / Math.pow(2, 20) });
-        return true;
+        labelAttributeName: "",
+        placeholderText: "Custom Handler",
+        zoomDuration: 1000,
+        zoomMinResolution: 1.0 / Math.pow(2, 20),
+        zoomPadding: 50
     });
 
     Draw.create({
@@ -151,6 +125,11 @@ export function run() {
     Modify.create({
         map: map,
         position: "bottom-2 right"
+    });
+
+    Delete.create({
+        map: map,
+        position: "bottom-4 right"
     });
 
     return map;

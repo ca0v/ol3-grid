@@ -201,6 +201,7 @@ export class Grid extends ol.control.Control {
 
         this.options = options;
         this.features = new ol.source.Vector();
+        this.featureMap = [];
 
         let button = this.button = document.createElement('button');
         button.setAttribute('type', 'button');
@@ -234,6 +235,23 @@ export class Grid extends ol.control.Control {
 
         // render
         this.features.on(["addfeature", "addfeatures"], debounce(() => this.redraw()));
+
+        if (this.options.currentExtent) {
+            this.options.map.getView().on(["change:center", "change:resolution"], debounce(() => this.redraw()));
+        }
+
+        if (this.options.layers) {
+            this.options.layers.forEach(l => {
+                let source = l.getSource();
+                source.on("addfeature", (args: { feature: ol.Feature }) => {
+                    this.add(args.feature, l);
+                });
+                source.on("removefeature", (args: { feature: ol.Feature }) => {
+                    this.remove(args.feature, l);
+                });
+            });
+        }
+        
     }
 
     redraw() {
@@ -298,6 +316,8 @@ export class Grid extends ol.control.Control {
         });
     }
 
+    private featureMap: Array<{ f1: ol.Feature, f2: ol.Feature }>;
+
     add(feature: ol.Feature, layer?: ol.layer.Vector) {
         let style = feature.getStyle();
         if (!style && layer && this.options.showIcon) {
@@ -311,27 +331,19 @@ export class Grid extends ol.control.Control {
                 feature.setGeometry(originalFeature.getGeometry());
                 this.redraw();
             }));
+            this.featureMap.push({ f1: originalFeature, f2: feature });
         }
         this.features.addFeature(feature);
+    }
+
+    remove(feature: ol.Feature, layer: ol.layer.Vector) {
+        this.featureMap.filter(map => map.f1 === feature).forEach(m => this.features.removeFeature(m.f2));
+        this.redraw();
     }
 
     clear() {
         let tbody = this.grid.tBodies[0];
         tbody.innerHTML = "";
-    }
-
-    setMap(map: ol.Map) {
-        super.setMap(map);
-
-        if (this.options.currentExtent) {
-            map.getView().on(["change:center", "change:resolution"], debounce(() => this.redraw()));
-        }
-
-        if (this.options.layers) {
-            this.options.layers.forEach(l => l.getSource().on("addfeature", (args: { feature: ol.Feature }) => {
-                this.add(args.feature, l);
-            }));
-        }
     }
 
     collapse() {
