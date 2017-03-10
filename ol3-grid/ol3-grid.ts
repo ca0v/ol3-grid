@@ -1,91 +1,7 @@
 import ol = require("openlayers");
-import { cssin, debounce, defaults, html, mixin, } from "ol3-fun/ol3-fun/common";
+import { cssin, debounce, defaults, html, mixin, pair, range } from "ol3-fun";
 import Snapshot = require("ol3-fun/ol3-fun/snapshot");
 import { zoomToFeature } from "ol3-fun/ol3-fun/navigation";
-
-const css = `
-    .ol-grid {
-        position:absolute;
-    }
-    .ol-grid.top {
-        top: 0.5em;
-    }
-    .ol-grid.top-1 {
-        top: 1.5em;
-    }
-    .ol-grid.top-2 {
-        top: 2.5em;
-    }
-    .ol-grid.top-3 {
-        top: 3.5em;
-    }
-    .ol-grid.top-4 {
-        top: 4.5em;
-    }
-    .ol-grid.left {
-        left: 0.5em;
-    }
-    .ol-grid.left-1 {
-        left: 1.5em;
-    }
-    .ol-grid.left-2 {
-        left: 2.5em;
-    }
-    .ol-grid.left-3 {
-        left: 3.5em;
-    }
-    .ol-grid.left-4 {
-        left: 4.5em;
-    }
-    .ol-grid.bottom {
-        bottom: 0.5em;
-    }
-    .ol-grid.bottom-1 {
-        bottom: 1.5em;
-    }
-    .ol-grid.bottom-2 {
-        bottom: 2.5em;
-    }
-    .ol-grid.bottom-3 {
-        bottom: 3.5em;
-    }
-    .ol-grid.bottom-4 {
-        bottom: 4.5em;
-    }
-    .ol-grid.right {
-        right: 0.5em;
-    }
-    .ol-grid.right-1 {
-        right: 1.5em;
-    }
-    .ol-grid.right-2 {
-        right: 2.5em;
-    }
-    .ol-grid.right-3 {
-        right: 3.5em;
-    }
-    .ol-grid.right-4 {
-        right: 4.5em;
-    }
-    .ol-grid .ol-grid-container {
-        max-height: 16em;
-        overflow-y: auto;
-    }
-    .ol-grid .ol-grid-container.ol-hidden {
-        display: none;
-    }
-    .ol-grid .feature-row {
-        cursor: pointer;
-    }
-    .ol-grid .feature-row:hover {
-        background: black;
-        color: white;
-    }
-    .ol-grid .feature-row:focus {
-        background: #ccc;
-        color: black;
-    }
-`;
 
 const grid_html = `
 <div class='ol-grid-container'>
@@ -106,6 +22,7 @@ export interface GridOptions {
     map?: ol.Map;
     // what css class name to assign to the main element
     className?: string;
+    position?: string;
     expanded?: boolean;
     hideButton?: boolean;
     autoCollapse?: boolean;
@@ -135,7 +52,8 @@ const expando = {
 export class Grid extends ol.control.Control {
 
     static DEFAULT_OPTIONS: GridOptions = {
-        className: 'ol-grid top right',
+        className: 'ol-grid',
+        position: 'top right',
         expanded: false,
         autoCollapse: true,
         autoPan: true,
@@ -154,20 +72,19 @@ export class Grid extends ol.control.Control {
         zoomMinResolution: 1 / Math.pow(2, 22)
     }
 
-    static create(options: GridOptions = {}): Grid {
-
-        cssin('ol-grid', css);
+    static create(options: GridOptions): Grid {
 
         // provide computed and static defaults
         options = defaults(mixin({
-            openedText: options.className && -1 < options.className.indexOf("left") ? expando.left : expando.right,
-            closedText: options.className && -1 < options.className.indexOf("left") ? expando.right : expando.left,
+            openedText: options.position && -1 < options.position.indexOf("left") ? expando.left : expando.right,
+            closedText: options.position && -1 < options.position.indexOf("left") ? expando.right : expando.left,
         }, options), Grid.DEFAULT_OPTIONS);
 
         let element = document.createElement('div');
-        element.className = `${options.className} ${olcss.CLASS_UNSELECTABLE} ${olcss.CLASS_CONTROL}`;
+        element.className = `${options.className} ${options.position} ${olcss.CLASS_UNSELECTABLE} ${olcss.CLASS_CONTROL}`;
 
         let gridOptions = mixin({
+            map: options.map,
             element: element,
             expanded: false
         }, options);
@@ -176,6 +93,9 @@ export class Grid extends ol.control.Control {
         if (options.map) {
             options.map.addControl(grid);
         }
+
+        grid.handlers.push(() => element.remove());
+
         return grid;
     }
 
@@ -185,6 +105,7 @@ export class Grid extends ol.control.Control {
     private grid: HTMLTableElement;
 
     private options: GridOptions;
+    public handlers: Array<() => void>;
 
     private constructor(options: GridOptions) {
 
@@ -202,6 +123,9 @@ export class Grid extends ol.control.Control {
         this.options = options;
         this.features = new ol.source.Vector();
         this.featureMap = [];
+        this.handlers = [];
+
+        this.cssin();
 
         let button = this.button = document.createElement('button');
         button.setAttribute('type', 'button');
@@ -251,7 +175,52 @@ export class Grid extends ol.control.Control {
                 });
             });
         }
-        
+
+    }
+
+    destroy() {
+        this.handlers.forEach(h => h());
+        this.setTarget(null);
+    }
+
+    setPosition(position: string) {
+        this.options.position.split(' ')
+            .forEach(k => this.options.element.classList.remove(k));
+
+        position.split(' ')
+            .forEach(k => this.options.element.classList.add(k));
+
+        this.options.position = position;
+    }
+
+    cssin() {
+        let className = this.options.className;
+        let positions = pair("top left right bottom".split(" "), range(24))
+            .map(pos => `.${className}.${pos[0] + (-pos[1] || '')} { ${pos[0]}:${0.5 + pos[1]}em; }`);
+
+        this.handlers.push(cssin(className,
+            `
+.${className} .${className}-container {
+    max-height: 16em;
+    overflow-y: auto;
+}
+.${className} .${className}-container.ol-hidden {
+    display: none;
+}
+.${className} .feature-row {
+    cursor: pointer;
+}
+.${className} .feature-row:hover {
+    background: black;
+    color: white;
+}
+.${className} .feature-row:focus {
+    background: #ccc;
+    color: black;
+}
+${positions.join('\n')}
+`
+        ));
     }
 
     redraw() {

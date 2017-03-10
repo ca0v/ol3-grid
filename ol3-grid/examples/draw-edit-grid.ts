@@ -97,7 +97,8 @@ export function run() {
 
     Grid.create({
         map: map,
-        className: "ol-grid top-4 left",
+        className: "ol-grid",
+        position: "top-4 left",
         layers: [layer],
         currentExtent: true,
         hideButton: false,

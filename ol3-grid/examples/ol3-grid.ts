@@ -179,7 +179,8 @@ export function run() {
 
     Grid.create({
         map: map,
-        className: "ol-grid top left-2",
+        className: "ol-grid",
+        position: "top left-2",
         layers: [layer],
         currentExtent: false,
         hideButton: false,
@@ -203,7 +204,8 @@ export function run() {
 
     Grid.create({
         map: map,
-        className: "ol-grid bottom left",
+        className: "ol-grid",
+        position: "bottom left",
         layers: [layer],
         currentExtent: true,
         hideButton: false,
@@ -218,7 +220,8 @@ export function run() {
     Grid.create({
         map: map,
         autoPan: true,
-        className: "ol-grid bottom right",
+        className: "ol-grid",
+        position: "bottom right",
         layers: [layer],
         currentExtent: true,
         hideButton: true,
