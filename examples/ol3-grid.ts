@@ -1,14 +1,7 @@
 import $ = require("jquery");
 import ol = require("openlayers");
-import { StyleConverter } from "ol3-symbolizer/ol3-symbolizer/format/ol3-symbolizer";
-import pointStyle = require("ol3-symbolizer/ol3-symbolizer/styles/star/flower");
-import { Grid } from "../ol3-grid";
+import { Grid } from "../../ol3-grid/index";
 import { zoomToFeature } from "ol3-fun/ol3-fun/navigation";
-import { Draw } from "ol3-draw";
-import { Modify } from "ol3-draw/ol3-draw/ol3-edit";
-import { Delete } from "ol3-draw/ol3-draw/ol3-delete";
-
-let styler = new StyleConverter();
 
 function doif<T>(v: T, cb: (v: T) => void) {
     if (v !== undefined && v !== null) cb(v);
@@ -41,8 +34,55 @@ function randomName() {
     return `${adverb} ${noun}`.toLocaleUpperCase();
 }
 
+const html = `
+<div class='popup'>
+    <div class='popup-container'>
+    </div>
+</div>
+`;
+
+const css = `
+<style name="popup" type="text/css">
+    html, body, .map {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        overflow: hidden;
+        margin: 0;    
+    }
+    .popup-container {
+        position: absolute;
+        top: 1em;
+        right: 0.5em;
+        width: 10em;
+        bottom: 1em;
+        z-index: 1;
+        pointer-events: none;
+    }
+    .popup-container .ol-popup.docked {
+        min-width: auto;
+    }
+</style>
+`;
+
+const css_popup = `
+.ol-popup {
+    color: white;
+    background-color: rgba(77,77,77,0.7);
+    border: 1px solid white;
+    min-width: 200px;
+    padding: 12px;
+}
+
+.ol-popup:after {
+    border-top-color: white;
+}
+`;
 
 export function run() {
+
+    $(html).appendTo(".map");
+    $(css).appendTo("head");
 
     let options = {
         srs: 'EPSG:4326',
@@ -82,55 +122,91 @@ export function run() {
             })]
     });
 
-    let features = new ol.Collection<ol.Feature>();
-
-    let source = new ol.source.Vector({
-        features: features
-    });
-
-
     let layer = new ol.layer.Vector({
-        source: source
+        source: new ol.source.Vector({
+            features: new ol.Collection<ol.Feature>()
+        })
     });
 
     map.addLayer(layer);
 
+    map.on("click", (event: any) => {
+        let location = event.coordinate.map(v => v.toFixed(5)).join(", ");
+        let point = new ol.geom.Point(event.coordinate);
+        point.set("location", location);
+        let feature = new ol.Feature(point);
+        feature.set("text", randomName());
+
+        feature.setStyle(new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 20,
+                fill: new ol.style.Fill({
+                    color: "rgba(0, 0, 0, 0.5)"
+                })
+            })
+        }));
+
+        layer.getSource().addFeature(feature);
+
+    });
+
+    Grid.create({
+        map: map,
+        layers: [layer],
+        expanded: true,
+        labelAttributeName: "text"
+    });
+
+
     Grid.create({
         map: map,
         className: "ol-grid",
-        position: "top-4 left",
+        position: "top left-2",
+        layers: [layer],
+        currentExtent: false,
+        hideButton: false,
+        closedText: "+",
+        openedText: "-",
+        autoCollapse: false,
+        autoPan: false,
+        canCollapse: true,
+        showIcon: true,
+        labelAttributeName: "",
+        placeholderText: "Custom Handler",
+        zoomDuration: 4000,
+        zoomMinResolution: 8,
+        zoomPadding: 1000
+    }).on("feature-click", (args: { feature: ol.Feature }) => {
+        let center = args.feature.getGeometry().getClosestPoint(map.getView().getCenter());
+        zoomToFeature(map, args.feature, { padding: 50, minResolution: 1 / Math.pow(2, 20) });
+        return true;
+    });
+
+    Grid.create({
+        map: map,
+        className: "ol-grid",
+        position: "bottom left",
         layers: [layer],
         currentExtent: true,
         hideButton: false,
         closedText: "+",
         openedText: "-",
-        autoCollapse: false,
-        autoPan: true,
+        autoCollapse: true,
         canCollapse: true,
-        expanded: true,
         showIcon: true,
-        labelAttributeName: "",
-        placeholderText: "Custom Handler",
-        zoomDuration: 1000,
-        zoomMinResolution: 1.0 / Math.pow(2, 20),
-        zoomPadding: 50
+        labelAttributeName: ""
     });
 
-    Draw.create({
+    Grid.create({
         map: map,
+        autoPan: true,
+        className: "ol-grid",
         position: "bottom right",
-        geometryType: "Polygon",
-        layers: [layer]
-    });
-
-    Modify.create({
-        map: map,
-        position: "bottom-2 right"
-    });
-
-    Delete.create({
-        map: map,
-        position: "bottom-4 right"
+        layers: [layer],
+        currentExtent: true,
+        hideButton: true,
+        showIcon: true,
+        labelAttributeName: "text"
     });
 
     return map;

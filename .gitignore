@@ -1,4 +1,7 @@
 *.js
 bower_components
+node_modules
+static/**
 typings
 *.log
+!static/require.js

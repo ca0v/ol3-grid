@@ -42,6 +42,7 @@ export interface GridOptions {
     zoomDuration?: number;
     zoomPadding?: number;
     zoomMinResolution?: number;
+    preprocessFeatures?: (feature: ol.Feature[]) => ol.Feature[];
 }
 
 const expando = {
@@ -167,10 +168,10 @@ export class Grid extends ol.control.Control {
         if (this.options.layers) {
             this.options.layers.forEach(l => {
                 let source = l.getSource();
-                source.on("addfeature", (args: { feature: ol.Feature }) => {
+                source.on("addfeature", (args: any) => {
                     this.add(args.feature, l);
                 });
-                source.on("removefeature", (args: { feature: ol.Feature }) => {
+                source.on("removefeature", (args: any) => {
                     this.remove(args.feature, l);
                 });
             });
@@ -200,6 +201,9 @@ export class Grid extends ol.control.Control {
 
         this.handlers.push(cssin(className,
             `
+.${className} {
+    position: absolute;
+}
 .${className} .${className}-container {
     max-height: 16em;
     overflow-y: auto;
@@ -236,6 +240,10 @@ ${positions.join('\n')}
             this.features.forEachFeatureInExtent(extent, f => void features.push(f));
         } else {
             this.features.forEachFeature(f => void features.push(f));
+        }
+
+        if (options.preprocessFeatures) {
+            features = options.preprocessFeatures(features);
         }
 
         features.forEach(feature => {
@@ -332,13 +340,13 @@ ${positions.join('\n')}
         this.button.innerHTML = options.openedText;
     }
 
-    on(type: string, cb: Function): ol.Object | ol.Object[];
-    on(type: "feature-click", cb: (args: {
+    on(type: string, cb: Function): (ol.EventsKey | ol.EventsKey[]);
+    on(type: "feature-click", cb: (evt: Event | {
         type: "feature-click";
         feature: ol.Feature;
         row: HTMLTableRowElement;
-    }) => void): void;
-    on(type: string, cb: Function) {
+    }) => boolean | void): (ol.EventsKey | ol.EventsKey[]);
+    on(type: string, cb: (evt: Event) => boolean) {
         return super.on(type, cb);
     }
 }
