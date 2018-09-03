@@ -8,8 +8,8 @@
         "noImplicitAny": true,
         "sourceMap": true,
         "rootDir": "../",
-        "outFile": "../built/tests/spec/index.js",
-        "moduleResolution": "node",
+        "outFile": "../built/spec/index.js",
+        "moduleResolution": "classic",
         "baseUrl": "../node_modules"
     },
     "include": [

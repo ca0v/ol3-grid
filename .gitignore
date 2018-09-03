@@ -4,4 +4,5 @@ node_modules
 static/**
 typings
 *.log
+!built/**
 !static/require.js

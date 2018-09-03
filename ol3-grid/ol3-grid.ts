@@ -1,5 +1,5 @@
 import ol = require("openlayers");
-import { cssin, debounce, defaults, html, mixin, pair, range } from "ol3-fun";
+import { cssin, debounce, defaults, html, mixin, pair, range } from "ol3-fun/index";
 import Snapshot = require("ol3-fun/ol3-fun/snapshot");
 import { zoomToFeature } from "ol3-fun/ol3-fun/navigation";
 
@@ -59,7 +59,7 @@ export class Grid extends ol.control.Control {
         autoCollapse: true,
         autoPan: true,
         canCollapse: true,
-        currentExtent: true,
+        currentExtent: false,
         hideButton: false,
         showIcon: false,
         labelAttributeName: "",
@@ -73,13 +73,13 @@ export class Grid extends ol.control.Control {
         zoomMinResolution: 1 / Math.pow(2, 22)
     }
 
-    static create(options: GridOptions): Grid {
+    static create(options?: GridOptions): Grid {
 
         // provide computed and static defaults
         options = defaults(mixin({
-            openedText: options.position && -1 < options.position.indexOf("left") ? expando.left : expando.right,
-            closedText: options.position && -1 < options.position.indexOf("left") ? expando.right : expando.left,
-        }, options), Grid.DEFAULT_OPTIONS);
+            openedText: (options && options.position && -1 < options.position.indexOf("left")) ? expando.left : expando.right,
+            closedText: (options && options.position && -1 < options.position.indexOf("left")) ? expando.right : expando.left,
+        }, options || {}), Grid.DEFAULT_OPTIONS);
 
         let element = document.createElement('div');
         element.className = `${options.className} ${options.position} ${olcss.CLASS_UNSELECTABLE} ${olcss.CLASS_CONTROL}`;
@@ -162,6 +162,7 @@ export class Grid extends ol.control.Control {
         this.features.on(["addfeature", "addfeatures"], debounce(() => this.redraw()));
 
         if (this.options.currentExtent) {
+            if (!this.options.map) throw "must provide a map when currentExtent is true";
             this.options.map.getView().on(["change:center", "change:resolution"], debounce(() => this.redraw()));
         }
 
@@ -277,7 +278,7 @@ ${positions.join('\n')}
                     this.dispatchEvent({
                         type: "feature-click",
                         feature: feature,
-                        row: tr[0]
+                        row: tr
                     });
                     if (this.options.autoPan) {
                         zoomToFeature(map, feature, {

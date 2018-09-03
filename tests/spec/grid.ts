@@ -14,19 +14,25 @@ describe("Grid Tests", () => {
     });
 
     it("options of an Input instance", () => {
-        let input = Grid.create({});
-        checkDefaultInputOptions(<any>input);
+        let grid = Grid.create();
+        shouldEqual(grid.getMap(), null, "no map");
+        grid.destroy();
     });
 
-    it("input dom", (done) => {
-        let target = document.createElement("div");
-        let input = Grid.create({element: target});
-        input.add(new ol.Feature({text: "feature text"}));
-        shouldEqual(target.innerHTML, "", "innerHTML");
-    });
 
 });
 
 function checkDefaultInputOptions(options: GridOptions) {
     should(!!options, "options");
+    shouldEqual(options.autoCollapse, true, "autoCollapse");
+    shouldEqual(options.canCollapse, true, "canCollapse");
+    shouldEqual(options.className, "ol-grid", "className");
+    should(options.closedText.length > 0, "closedText");
+    shouldEqual(options.expanded, false, "expanded");
+    shouldEqual(options.hideButton, false, "hideButton");
+    shouldEqual(options.map, undefined, "map");
+    shouldEqual(!!options.openedText, true, "openedText");
+    shouldEqual(!!options.placeholderText, true, "placeholderText");
+    shouldEqual(options.position, "top right", "position");
+    shouldEqual(options.target, undefined, "target");
 }

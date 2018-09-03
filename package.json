@@ -1,11 +1,12 @@
 {
-  "name": "ol3-input",
+  "name": "ol3-grid",
   "version": "5.1.3",
-  "description": "Input control for OpenLayers",
+  "description": "Grid control for OpenLayers",
   "main": "index.js",
   "scripts": {
     "clean": "rm built/** -rf",
     "build-for-amd": "tsc -p tsconfig.json --outFile built/index.max.js",
+    "publish-typings": "mv built/index.max.d.ts built/index.d.ts",
     "build-for-examples": "tsc -p examples/tsconfig.json --outFile ./built/examples.max.js",
     "live-for-examples": "live-server --port=5001 --wait=200 --watch=./built/examples.max.js --open=./loaders/examples.html --browser=CHROME",
     "dev-for-examples": "npm run build-for-examples && start npm run live-for-examples && start npm run build-for-examples -- -w",
@@ -16,19 +17,19 @@
     "dev-for-tests": "npm run build-for-tests & start npm run live-for-tests & npm run build-for-tests -- -w",
     "tests": "npm run dev-for-tests",
     "install": "npm run build-for-amd",
-    "before-push": "mv built/index.max.d.ts built/index.d.ts && npm run clean && npm run build-for-loaders && npm run build-for-amd && npm run build-for-tests && npm run build-for-examples",
+    "before-push": "npm run clean && npm run build-for-loaders && npm run build-for-amd && npm run publish-typings && npm run build-for-tests && npm run build-for-examples",
     "test": "npm run before-push && npm run live-for-tests"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ca0v/ol3-input.git"
+    "url": "git+https://github.com/ca0v/ol3-grid.git"
   },
   "author": "coreyalix@hotmail.com",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ca0v/ol3-input/issues"
+    "url": "https://github.com/ca0v/ol3-grid/issues"
   },
-  "homepage": "https://github.com/ca0v/ol3-input#readme",
+  "homepage": "https://github.com/ca0v/ol3-grid#readme",
   "devDependencies": {
     "@types/jquery": "^3.3.6",
     "@types/mocha": "^5.2.5",

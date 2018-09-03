@@ -1,6 +1,6 @@
 export function run() {
     let l = window.location;
-    let path = `${l.origin}${l.pathname}?run=ol3-grid/examples/`;
+    let path = `${l.origin}${l.pathname}?run=examples/`;
     let labs = `
     index
     draw-edit-grid
@@ -27,8 +27,6 @@ export function run() {
         .map(lab => `<div class='test'><a href='${path}${lab}&debug=0'>${lab}</a></div>`)
         .join("\n");
 
-
-    html += `<a href='${l.origin}${l.pathname}?run=ol3-grid/tests/index'>tests</a>`;
 
     document.write(html);
 };

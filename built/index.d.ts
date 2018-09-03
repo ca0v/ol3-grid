@@ -25,7 +25,7 @@ declare module "ol3-grid/ol3-grid" {
     }
     export class Grid extends ol.control.Control {
         static DEFAULT_OPTIONS: GridOptions;
-        static create(options: GridOptions): Grid;
+        static create(options?: GridOptions): Grid;
         private features;
         private button;
         private grid;

@@ -1,1 +1,1 @@
-import "./spec/input";
+import "./spec/grid";

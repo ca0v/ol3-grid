@@ -140,8 +140,12 @@ export function run() {
         feature.setStyle(new ol.style.Style({
             image: new ol.style.Circle({
                 radius: 20,
+                stroke: new ol.style.Stroke({
+                    width: 3,
+                    color: "rgba(60, 120, 180, 1)"
+                }),
                 fill: new ol.style.Fill({
-                    color: "rgba(0, 0, 0, 0.5)"
+                    color: "rgba(120, 120, 180, 0.8)"
                 })
             })
         }));
