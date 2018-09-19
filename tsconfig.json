@@ -1,16 +1,14 @@
 {
-    "compilerOptions": {
-        "module": "amd",
-        "target": "es5",
-        "declaration": true,
-        "noImplicitAny": false,
-        "outFile": "built/index.js",
-        "sourceMap": true,
-        "moduleResolution": "node",
-        "baseUrl": "./bower_components"
-    },
-    "include": [
-        "index.ts",
-        "ol3-grid"
-    ]
+	"compilerOptions": {
+		"module": "amd",
+		"target": "es5",
+		"declaration": true,
+		"noImplicitAny": false,
+		"outFile": "built/index.js",
+		"sourceMap": true,
+		"moduleResolution": "classic",
+		"baseUrl": "./node_modules",
+		"lib": ["es2015", "dom"]
+	},
+	"include": ["index.ts", "ol3-grid/**/*.ts"]
 }

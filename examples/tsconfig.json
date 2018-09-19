@@ -1,23 +1,13 @@
 {
-    "compilerOptions": {
-        "allowJs": false,
-        "baseUrl": "../node_modules",
-        "declaration": false,
-        "module": "amd",
-        "moduleResolution": "classic",
-        "noImplicitAny": false,
-        "removeComments": true,
-        "sourceMap": true,
-        "target": "es5",
-        "paths": {
-            "ol3-fun": ["../node_modules/ol3-fun/index"],
-            "ol3-popup": ["../node_modules/ol3-popup/index"],
-            "ol3-symbolizer": ["../node_modules/ol3-symbolizer/index"],
-            "ol3-draw": ["../node_modules/ol3-draw"]
-        }
-    },
-    "include": [
-        "index.ts",
-        "**/*.ts"
-    ]
+	"extends": "../tsconfig",
+	"compilerOptions": {
+		"declaration": false,
+		"paths": {
+			"ol3-fun": ["../node_modules/ol3-fun/index"],
+			"ol3-popup": ["../node_modules/ol3-popup/index"],
+			"ol3-symbolizer": ["../node_modules/ol3-symbolizer/index"],
+			"ol3-draw": ["../node_modules/ol3-draw"]
+		}
+	},
+	"include": ["index.ts", "**/*.ts"]
 }
